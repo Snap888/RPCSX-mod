@@ -2,6 +2,7 @@ package net.rpcsx
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -37,6 +38,15 @@ class RPCSXActivity : Activity() {
 
         unregisterUsbEventListener = listenUsbEvents(this)
         enableFullScreenImmersive()
+
+        // Prefer steady clocks over short bursts: long emulation sessions are
+        // thermally bound, and consistent frametimes beat a higher peak that
+        // throttles into stutter. No-op on devices that don't support it.
+        (getSystemService(POWER_SERVICE) as? PowerManager)?.let { pm ->
+            if (pm.isSustainedPerformanceModeSupported) {
+                window.setSustainedPerformanceMode(true)
+            }
+        }
 
         binding.oscToggle.setOnClickListener {
             binding.padOverlay.isInvisible = !binding.padOverlay.isInvisible
