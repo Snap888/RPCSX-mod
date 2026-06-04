@@ -100,7 +100,7 @@
     <string name="download_channels">Download Channels</string>
     <string name="enable_haptic_feedback">Enable Haptic Feedback</string>
     <string name="enable_sustained_performance">Sustained Performance Mode</string>
-    <string name="sustained_performance_summary">Asks Android to hold steady CPU/GPU clocks instead of brief turbo bursts. Long PS3 sessions are heat-limited, so steady clocks keep frame times consistent and avoid thermal-throttle stutter. Turn off only if you prefer maximum short-burst speed.</string>
+    <string name="sustained_performance_summary">Keeps CPU/GPU clocks steady for smoother frame times and less thermal stutter in long sessions. Off = higher peak bursts.</string>
     <string name="failed_to_assign_value">Failed to assign value %1$s to %2$s</string>
     <string name="failed_to_reset_key">Failed to reset %1$s</string>
     <string name="failed_to_view_internal_dir">Failed to view internal directory</string>

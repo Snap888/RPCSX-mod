@@ -797,7 +797,7 @@ fun ControllerSettings(
                 SwitchPreference(
                     checked = itemValue,
                     title = stringResource(R.string.enable_sustained_performance) + if (itemValue == def) "" else " *",
-                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.sustained_performance_summary)) },
+                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.sustained_performance_summary), maxLines = 3) },
                     leadingIcon = null,
                     onClick = { value ->
                         GeneralSettings.setValue("sustained_performance", value)
