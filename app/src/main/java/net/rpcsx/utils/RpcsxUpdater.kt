@@ -20,7 +20,11 @@ object RpcsxUpdater {
             return null
         }
 
-        return "v" + RPCSX.instance.getVersion().trim().removeSuffix(" Draft").trim() + "-" + GeneralSettings["rpcsx_installed_arch"]
+        // Fall back to the device arch when the installed arch is unknown
+        // (e.g. a side-loaded library whose filename doesn't encode it),
+        // otherwise the version would read "...-null".
+        val arch = GeneralSettings["rpcsx_installed_arch"] as? String ?: getArch()
+        return "v" + RPCSX.instance.getVersion().trim().removeSuffix(" Draft").trim() + "-" + arch
     }
 
     fun getFileArch(file: File): String? {
@@ -148,7 +152,7 @@ object RpcsxUpdater {
         val prevArch = GeneralSettings["rpcsx_installed_arch"] as? String
         GeneralSettings["rpcsx_library"] = updateFile.toString()
         GeneralSettings["rpcsx_update_status"] = null
-        GeneralSettings["rpcsx_installed_arch"] = getFileArch(updateFile)
+        GeneralSettings["rpcsx_installed_arch"] = getFileArch(updateFile) ?: getArch()
 
         Log.e("RPCSX-UI", "registered update file ${GeneralSettings["rpcsx_library"]}")
 
