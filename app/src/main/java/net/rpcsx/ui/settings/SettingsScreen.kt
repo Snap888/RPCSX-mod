@@ -787,6 +787,24 @@ fun ControllerSettings(
             }
 
             item {
+                var itemValue by remember {
+                    mutableStateOf(
+                        GeneralSettings["sustained_performance"] as Boolean? ?: true
+                    )
+                }
+                val def = true
+                SwitchPreference(
+                    checked = itemValue,
+                    title = stringResource(R.string.enable_sustained_performance) + if (itemValue == def) "" else " *",
+                    leadingIcon = null,
+                    onClick = { value ->
+                        GeneralSettings.setValue("sustained_performance", value)
+                        itemValue = value
+                    }
+                )
+            }
+
+            item {
                 HorizontalDivider()
             }
 

@@ -99,6 +99,7 @@
     <string name="custom_driver_not_supported_description">Custom driver loading isn\'t currently supported for this device.</string>
     <string name="download_channels">Download Channels</string>
     <string name="enable_haptic_feedback">Enable Haptic Feedback</string>
+    <string name="enable_sustained_performance">Sustained Performance Mode</string>
     <string name="failed_to_assign_value">Failed to assign value %1$s to %2$s</string>
     <string name="failed_to_reset_key">Failed to reset %1$s</string>
     <string name="failed_to_view_internal_dir">Failed to view internal directory</string>

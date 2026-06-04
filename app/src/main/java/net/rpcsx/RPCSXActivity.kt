@@ -18,6 +18,7 @@ import androidx.core.view.updateLayoutParams
 import net.rpcsx.databinding.ActivityRpcs3Binding
 import net.rpcsx.dialogs.AlertDialogQueue
 import net.rpcsx.overlay.State
+import net.rpcsx.utils.GeneralSettings
 import net.rpcsx.utils.InputBindingPrefs
 import kotlin.concurrent.thread
 import kotlin.math.abs
@@ -42,9 +43,12 @@ class RPCSXActivity : Activity() {
         // Prefer steady clocks over short bursts: long emulation sessions are
         // thermally bound, and consistent frametimes beat a higher peak that
         // throttles into stutter. No-op on devices that don't support it.
-        (getSystemService(POWER_SERVICE) as? PowerManager)?.let { pm ->
-            if (pm.isSustainedPerformanceModeSupported) {
-                window.setSustainedPerformanceMode(true)
+        // User-toggleable (default on); disable for higher peak bursts.
+        if ((GeneralSettings["sustained_performance"] as? Boolean) != false) {
+            (getSystemService(POWER_SERVICE) as? PowerManager)?.let { pm ->
+                if (pm.isSustainedPerformanceModeSupported) {
+                    window.setSustainedPerformanceMode(true)
+                }
             }
         }
 
