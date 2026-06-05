@@ -115,6 +115,8 @@
     <string name="search">Search</string>
     <string name="share_log">Share Log</string>
     <string name="share_log_description">Share RPCSX\'s log file to help debug issues</string>
+    <string name="enable_vdec_trace_log">Video Decoder Trace Log</string>
+    <string name="vdec_trace_log_summary">Verbose logging for the video decoder (cellVdec). Turn on, reproduce a game that freezes on an intro/FMV movie, then use Share Log. Turn it back off afterward — it makes logs large.</string>
     <string name="users">Users</string>
     <string name="view_internal_dir">View Internal Directory</string>
     <string name="view_internal_dir_description">Open internal directory of RPCSX in file manager</string>

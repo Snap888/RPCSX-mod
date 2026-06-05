@@ -715,6 +715,38 @@ fun SettingsScreen(
                     }
                 )
             }
+
+            item(key = "vdec_trace_log") {
+                var itemValue by remember {
+                    mutableStateOf(GeneralSettings["vdec_trace_log"] as Boolean? ?: false)
+                }
+                SwitchPreference(
+                    checked = itemValue,
+                    title = stringResource(R.string.enable_vdec_trace_log),
+                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.vdec_trace_log_summary), maxLines = 4) },
+                    leadingIcon = null,
+                    onClick = { value ->
+                        // cellVdec -> Trace when on, Notice (default) when off. Written to the
+                        // core config's Log map, applied on next game boot.
+                        val json = if (value) "{\"cellVdec\":\"Trace\"}" else "{\"cellVdec\":\"Notice\"}"
+                        val ok = try {
+                            RPCSX.instance.settingsSet("Log", json)
+                        } catch (e: Throwable) {
+                            false
+                        }
+                        if (ok) {
+                            GeneralSettings.setValue("vdec_trace_log", value)
+                            itemValue = value
+                        } else {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.failed_to_assign_value, value.toString(), "Log"),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
+            }
         }
     }
 }
