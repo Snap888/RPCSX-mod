@@ -6,6 +6,29 @@ plugins {
     id("kotlin-parcelize")
 }
 
+// Build identity, consistent with the core (.so): calendar date + commit time
+// of this repo's HEAD, e.g. "2026.06.06-1430". Ordered and readable so testers
+// can always tell which build is newer; no git hash, no v1.x semver.
+fun gitDateTime(dir: java.io.File): String = try {
+    val proc = ProcessBuilder("git", "log", "-1", "--date=format:%Y.%m.%d-%H%M", "--format=%cd")
+        .directory(dir).redirectErrorStream(true).start()
+    val text = proc.inputStream.bufferedReader().use { it.readText() }.trim()
+    proc.waitFor()
+    text.ifEmpty { "0000.00.00-0000" }
+} catch (e: Exception) {
+    "0000.00.00-0000"
+}
+
+fun gitDateCode(dir: java.io.File): Int = try {
+    val proc = ProcessBuilder("git", "log", "-1", "--date=format:%Y%m%d", "--format=%cd")
+        .directory(dir).redirectErrorStream(true).start()
+    val text = proc.inputStream.bufferedReader().use { it.readText() }.trim()
+    proc.waitFor()
+    text.toIntOrNull() ?: 1
+} catch (e: Exception) {
+    1
+}
+
 android {
     namespace = "net.rpcsx"
     compileSdk = 36
@@ -15,8 +38,8 @@ android {
         applicationId = "net.rpcsx"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "${System.getenv("RX_VERSION") ?: "1.0.0"}${if (System.getenv("RX_SHA") != null) "-" + System.getenv("RX_SHA") else ""}"
+        versionCode = System.getenv("RX_VERSION_CODE")?.toIntOrNull() ?: gitDateCode(rootDir)
+        versionName = System.getenv("RX_VERSION") ?: gitDateTime(rootDir)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
