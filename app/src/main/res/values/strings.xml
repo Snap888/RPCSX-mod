@@ -90,6 +90,7 @@
     <string name="active_user">Active User</string>
     <string name="advanced_settings">Advanced Settings</string>
     <string name="advanced_settings_description">Configure emulator advanced settings</string>
+    <string name="download_channels_description">Choose the update source for the emulator core and GPU drivers</string>
     <string name="settings_category_general">General</string>
     <string name="settings_category_emulation">Emulation</string>
     <string name="settings_category_diagnostics">Diagnostics</string>

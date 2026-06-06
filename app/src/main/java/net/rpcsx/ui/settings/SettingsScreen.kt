@@ -628,7 +628,7 @@ fun SettingsScreen(
                 HomePreference(
                     title = stringResource(R.string.download_channels),
                     icon = { PreferenceIcon(icon = painterResource(R.drawable.ic_cloud_download)) },
-                    description = "",
+                    description = stringResource(R.string.download_channels_description),
                     onClick = {
                         navigateTo("update_channels")
                     }
