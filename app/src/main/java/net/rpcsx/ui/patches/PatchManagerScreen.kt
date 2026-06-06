@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,12 +56,21 @@ fun PatchManagerScreen(navigateBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var patches by remember { mutableStateOf(PatchRepository.list()) }
+    var patches by remember { mutableStateOf<List<Patch>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(true) }
 
     fun refresh() {
-        scope.launch { patches = withContext(Dispatchers.IO) { PatchRepository.list() } }
+        scope.launch {
+            loading = true
+            // The official set is ~850 KB / thousands of patches; parsing it must
+            // not run on the composition thread or the screen ANRs ("can't see it").
+            patches = withContext(Dispatchers.IO) { PatchRepository.list() }
+            loading = false
+        }
     }
+
+    LaunchedEffect(Unit) { refresh() }
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -157,7 +168,18 @@ fun PatchManagerScreen(navigateBack: () -> Unit) {
                 }
             }
 
-            if (patches.isEmpty()) {
+            if (loading) {
+                item(key = "loading") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            } else if (patches.isEmpty()) {
                 item(key = "empty") {
                     Surface(
                         modifier = Modifier
@@ -168,7 +190,7 @@ fun PatchManagerScreen(navigateBack: () -> Unit) {
                         tonalElevation = 2.dp
                     ) {
                         Text(
-                            text = "No patches installed yet.",
+                            text = "No patches yet. Tap \"Download official patches\" above; they are stored in config/patches/patch.yml and listed here.",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(20.dp)

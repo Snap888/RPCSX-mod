@@ -2,6 +2,7 @@ package net.rpcsx.ui.settings
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,12 +25,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -44,6 +47,8 @@ import net.rpcsx.ui.settings.components.preference.SingleSelectionDialog
 import net.rpcsx.ui.settings.components.preference.SliderPreference
 import net.rpcsx.ui.settings.components.preference.SwitchPreference
 import net.rpcsx.utils.CommunityConfigResult
+import net.rpcsx.utils.Patch
+import net.rpcsx.utils.PatchRepository
 import net.rpcsx.utils.PerGameConfigRepository
 import org.json.JSONObject
 
@@ -94,6 +99,15 @@ fun PerGameConfigScreen(serial: String, gameName: String, navigateBack: () -> Un
     val entries = loaded.entries
 
     fun reload() { reloadKey++ }
+
+    // Patches that apply to this game, loaded off the composition thread.
+    var patches by remember { mutableStateOf<List<Patch>>(emptyList()) }
+    var patchesLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(serial, reloadKey) {
+        patchesLoading = true
+        patches = withContext(Dispatchers.IO) { PatchRepository.listForSerial(serial) }
+        patchesLoading = false
+    }
 
     Scaffold(
         topBar = {
@@ -216,6 +230,51 @@ fun PerGameConfigScreen(serial: String, gameName: String, navigateBack: () -> Un
                 }
             }
 
+            item(key = "patches_header") {
+                PreferenceHeader(text = "Patches")
+            }
+            if (patchesLoading) {
+                item(key = "patches_loading") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    }
+                }
+            } else if (patches.isEmpty()) {
+                item(key = "patches_empty") {
+                    Text(
+                        text = "No patches for this game. Open Settings -> Patch Manager to download the official set.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    )
+                }
+            } else {
+                items(patches, key = { "patch:" + it.hash + "/" + it.name }) { patch ->
+                    var patchEnabled by remember(patch.hash + patch.name) { mutableStateOf(patch.enabled) }
+                    SwitchPreference(
+                        checked = patchEnabled,
+                        title = patch.name.ifEmpty { "(unnamed patch)" },
+                        leadingIcon = null,
+                        onClick = { value ->
+                            scope.launch {
+                                val ok = withContext(Dispatchers.IO) { PatchRepository.setEnabled(patch, value) }
+                                if (ok) {
+                                    patchEnabled = value
+                                } else {
+                                    Toast.makeText(context, "Could not change patch", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
+            item(key = "settings_header") {
+                PreferenceHeader(text = "Settings")
+            }
             if (entries.isEmpty()) {
                 item(key = "empty") {
                     Surface(

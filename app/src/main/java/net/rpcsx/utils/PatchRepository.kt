@@ -39,9 +39,27 @@ object PatchRepository {
     // since g_android_config_dir = rootDirectory + "config/".
     fun patchesDir(): File = File(RPCSX.rootDirectory + "config/patches/")
 
-    fun list(): List<Patch> = runCatching {
-        json.decodeFromString<List<Patch>>(RPCSX.instance.patchesList())
-    }.getOrDefault(emptyList())
+    fun list(): List<Patch> {
+        val raw = runCatching { RPCSX.instance.patchesList() }.getOrElse {
+            android.util.Log.e("PatchRepository", "patchesList() JNI call failed", it)
+            return emptyList()
+        }
+        return runCatching {
+            json.decodeFromString<List<Patch>>(raw)
+        }.getOrElse {
+            // Distinguish "core returned nothing" from "we couldn't parse it" - the
+            // raw length + head make it obvious in logcat which one happened.
+            android.util.Log.e(
+                "PatchRepository",
+                "failed to parse patch list (len=${raw.length}): ${raw.take(200)}", it
+            )
+            emptyList()
+        }
+    }
+
+    /** Patches that apply to a game: ones targeting its serial, plus universal ones. */
+    fun listForSerial(serial: String): List<Patch> =
+        list().filter { it.serials.isEmpty() || it.serials.contains(serial) }
 
     fun setEnabled(patch: Patch, enabled: Boolean): Boolean = runCatching {
         RPCSX.instance.patchSetEnabled(patch.hash, patch.name, enabled)
