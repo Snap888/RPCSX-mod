@@ -89,14 +89,20 @@ fun PerGameConfigScreen(serial: String, gameName: String, navigateBack: () -> Un
     var reloadKey by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
 
-    val loaded = remember(reloadKey) {
-        val has = PerGameConfigRepository.hasCustomConfig(serial)
-        val root = PerGameConfigRepository.get(serial)
-        val list = if (root == null) emptyList() else buildList { flattenConfig(root, "", "", this) }
-        LoadedConfig(has, list)
+    // Load off the composition thread: get() does a JNI call that builds the whole
+    // cfg tree and returns a large JSON, which would jank/freeze the screen.
+    var loaded by remember { mutableStateOf<LoadedConfig?>(null) }
+    LaunchedEffect(serial, reloadKey) {
+        loaded = withContext(Dispatchers.IO) {
+            val has = PerGameConfigRepository.hasCustomConfig(serial)
+            val root = PerGameConfigRepository.get(serial)
+            val list = if (root == null) emptyList() else buildList { flattenConfig(root, "", "", this) }
+            LoadedConfig(has, list)
+        }
     }
-    val hasCustom = loaded.hasCustom
-    val entries = loaded.entries
+    val configLoading = loaded == null
+    val hasCustom = loaded?.hasCustom ?: false
+    val entries = loaded?.entries ?: emptyList()
 
     fun reload() { reloadKey++ }
 
@@ -275,7 +281,16 @@ fun PerGameConfigScreen(serial: String, gameName: String, navigateBack: () -> Un
             item(key = "settings_header") {
                 PreferenceHeader(text = "Settings")
             }
-            if (entries.isEmpty()) {
+            if (configLoading) {
+                item(key = "settings_loading") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    }
+                }
+            } else if (entries.isEmpty()) {
                 item(key = "empty") {
                     Surface(
                         modifier = Modifier
