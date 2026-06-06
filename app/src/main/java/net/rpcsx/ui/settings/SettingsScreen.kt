@@ -687,7 +687,16 @@ fun SettingsScreen(
                     icon = { Icon(painterResource(R.drawable.gamepad), null) },
                     description = stringResource(R.string.controls_description),
                     onClick = { navigateTo("controls") }
-                )       
+                )
+            }
+
+            item(key = "patch_manager") {
+                HomePreference(
+                    title = "Patch Manager",
+                    icon = { PreferenceIcon(icon = painterResource(R.drawable.ic_build)) },
+                    description = "Download and enable game patches",
+                    onClick = { navigateTo("patch_manager") }
+                )
             }
 
             item(key = "share_logs") {

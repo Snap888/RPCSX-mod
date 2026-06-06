@@ -84,6 +84,7 @@ import net.rpcsx.ui.channels.ReleaseRpcsxChannel
 import net.rpcsx.ui.channels.ReleaseUiChannel
 import net.rpcsx.ui.channels.UpdateChannelListScreen
 import net.rpcsx.ui.channels.UpdateChannelsScreen
+import net.rpcsx.ui.patches.PatchManagerScreen
 import net.rpcsx.ui.channels.channelToUiText
 import net.rpcsx.ui.channels.channelsToUiText
 import net.rpcsx.ui.channels.uiTextToChannel
@@ -284,6 +285,14 @@ fun AppNavHost() {
             UpdateChannelsScreen(
                 navigateBack = navController::navigateUp,
                 navigateTo = navigateTo,
+            )
+        }
+
+        composable(
+            route = "patch_manager"
+        ) {
+            PatchManagerScreen(
+                navigateBack = navController::navigateUp,
             )
         }
 
