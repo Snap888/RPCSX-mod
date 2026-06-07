@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import net.rpcsx.dialogs.AlertDialogQueue
 import net.rpcsx.ui.navigation.AppNavHost
+import net.rpcsx.utils.FileUtil
 import net.rpcsx.utils.GeneralSettings
 import net.rpcsx.utils.GitHub
 import net.rpcsx.utils.RpcsxUpdater
@@ -45,6 +46,14 @@ class MainActivity : ComponentActivity() {
             RPCSX.rootDirectory = applicationContext.getExternalFilesDir(null).toString()
             if (!RPCSX.rootDirectory.endsWith("/")) {
                 RPCSX.rootDirectory += "/"
+            }
+
+            // The native overlay code (save/message/OSK dialogs) loads PS-button
+            // glyphs from <config>/Icons/ui/*.png. They ship as APK assets; extract
+            // them on first run so dialogs render with proper button icons.
+            val iconsDir = File(RPCSX.rootDirectory + "config", "Icons")
+            if (!File(iconsDir, "ui").exists()) {
+                FileUtil.extractAssetDir(applicationContext, "Icons", iconsDir)
             }
 
             lifecycleScope.launch {

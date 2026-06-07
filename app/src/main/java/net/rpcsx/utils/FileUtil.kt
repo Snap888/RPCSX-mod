@@ -226,6 +226,36 @@ object FileUtil {
         return paths.size == 2 && "tree" == paths[0]
     }
 
+    // Recursively copy a bundled asset directory into the filesystem.
+    // Used to materialize resources the native core loads by path (e.g. the
+    // overlay PS-button icons it expects at <config>/Icons/ui/*.png).
+    fun extractAssetDir(ctx: Context, assetPath: String, targetDir: File) {
+        val children = try {
+            ctx.assets.list(assetPath)
+        } catch (e: IOException) {
+            Log.e("FileUtil", "extractAssetDir: list('$assetPath') failed: ${e.message}")
+            null
+        } ?: return
+
+        if (children.isEmpty()) {
+            // Leaf: assetPath is a file. Copy it to targetDir.
+            try {
+                targetDir.parentFile?.mkdirs()
+                ctx.assets.open(assetPath).use { input ->
+                    FileOutputStream(targetDir).use { output -> input.copyTo(output) }
+                }
+            } catch (e: Exception) {
+                Log.e("FileUtil", "extractAssetDir: copy '$assetPath' failed: ${e.message}")
+            }
+            return
+        }
+
+        targetDir.mkdirs()
+        for (child in children) {
+            extractAssetDir(ctx, "$assetPath/$child", File(targetDir, child))
+        }
+    }
+
     fun deleteCache(ctx: Context, gameId: String, onComplete: (Boolean) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             // The core caches a game under cache/cache/<title_id>/ (PPU/SPU/shaders).
