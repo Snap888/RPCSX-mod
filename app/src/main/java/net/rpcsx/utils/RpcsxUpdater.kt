@@ -27,6 +27,19 @@ object RpcsxUpdater {
             .replace("+", "")
             .trim()
 
+    // Extract the CalVer "YYYY.MM.DD-HHMM" sort key from a version string like
+    // "v2026.06.07-1950-armv8.2-a". The fixed-width, zero-padded form sorts
+    // chronologically under plain string comparison, and dropping the arch suffix
+    // keeps the comparison about build age rather than which variant was picked.
+    private fun versionSortKey(v: String?): String {
+        if (v == null) return ""
+        return Regex("\\d{4}\\.\\d{2}\\.\\d{2}-\\d{4}").find(v)?.value ?: v
+    }
+
+    // True when [candidate] is a strictly newer build than [installed].
+    private fun isNewer(candidate: String, installed: String?): Boolean =
+        versionSortKey(candidate) > versionSortKey(installed)
+
     fun getCurrentVersion(): String? {
         if (RPCSX.activeLibrary.value == null) {
             return null
@@ -125,12 +138,6 @@ object RpcsxUpdater {
     }
 
     suspend fun checkForUpdate(): String? {
-        // The user deliberately side-loaded a custom core; don't nag to replace it
-        // with a release build (which is frequently older than the custom one).
-        if (GeneralSettings["rpcsx_custom_library"] as? Boolean == true) {
-            return null
-        }
-
         val url = DevRpcsxChannel // TODO: update once RPCSX has release with android support
 
         when (val fetchResult = GitHub.fetchLatestRelease(url)) {
@@ -146,7 +153,20 @@ object RpcsxUpdater {
                     return releaseVersion
                 }
 
-                if (getCurrentVersion() != releaseVersion && releaseVersion != GeneralSettings["rpcsx_bad_version"]) {
+                val current = getCurrentVersion()
+
+                // A deliberately side-loaded custom core (e.g. a local dev build)
+                // should not be nagged to "update" to a same-age or OLDER channel
+                // build, but we DO still surface a genuinely NEWER one so the user
+                // never silently misses a real release. Previously any custom core
+                // suppressed the check entirely, so release notifications stopped.
+                if (GeneralSettings["rpcsx_custom_library"] as? Boolean == true) {
+                    return if (isNewer(releaseVersion, current) &&
+                        releaseVersion != GeneralSettings["rpcsx_bad_version"]
+                    ) releaseVersion else null
+                }
+
+                if (current != releaseVersion && releaseVersion != GeneralSettings["rpcsx_bad_version"]) {
                     return releaseVersion
                 }
             }
