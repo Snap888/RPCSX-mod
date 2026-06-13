@@ -2,16 +2,26 @@
 package net.rpcsx
 
 import android.app.Activity
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowInsetsControllerCompat
+import net.rpcsx.utils.GeneralSettings
+import net.rpcsx.utils.GeneralSettings.boolean
+import net.rpcsx.utils.GeneralSettings.string
 
 object colors {
     val primaryLight = Color(0xFF4D5C92)
@@ -163,13 +173,61 @@ private val darkScheme = darkColorScheme(
     surfaceContainerHighest = colors.surfaceContainerHighestDark,
 )
 
+/**
+ * Observable, persisted theme selection. Reading these in a composable makes the
+ * UI recompose live when the user changes a theme option (no app restart).
+ *   mode: "system" | "light" | "dark"
+ */
+object ThemeState {
+    private val _mode = mutableStateOf(GeneralSettings["theme_mode"].string("system"))
+    private val _dynamic = mutableStateOf(GeneralSettings["theme_dynamic"].boolean(false))
+    private val _amoled = mutableStateOf(GeneralSettings["theme_amoled"].boolean(false))
+
+    // Reading these in a composable subscribes it; assigning persists + recomposes.
+    var mode: String
+        get() = _mode.value
+        set(value) { _mode.value = value; GeneralSettings["theme_mode"] = value }
+    var dynamicColor: Boolean
+        get() = _dynamic.value
+        set(value) { _dynamic.value = value; GeneralSettings["theme_dynamic"] = value }
+    var amoled: Boolean
+        get() = _amoled.value
+        set(value) { _amoled.value = value; GeneralSettings["theme_amoled"] = value }
+
+    val dynamicSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+}
+
 @Composable
 fun RPCSXTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    // TODO(Ishan09811): Implement dynamic colors option whenever settings gets implemented
-    val colors = if (darkTheme) darkScheme else lightScheme
+    val darkTheme = when (ThemeState.mode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
+
+    val context = LocalContext.current
+    var colors = when {
+        // Material You: derive the palette from the user's wallpaper (Android 12+).
+        ThemeState.dynamicColor && ThemeState.dynamicSupported ->
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        darkTheme -> darkScheme
+        else -> lightScheme
+    }
+
+    // AMOLED: true-black surfaces for OLED handhelds (only meaningful in dark).
+    if (darkTheme && ThemeState.amoled) {
+        colors = colors.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color.Black,
+            surfaceContainer = Color(0xFF0A0A0A),
+            surfaceContainerHigh = Color(0xFF121212),
+            surfaceContainerHighest = Color(0xFF1A1A1A),
+        )
+    }
 
     val view = LocalView.current
     val activity = view.context as? Activity

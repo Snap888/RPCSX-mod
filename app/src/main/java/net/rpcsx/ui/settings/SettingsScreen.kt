@@ -90,6 +90,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.rpcsx.R
 import net.rpcsx.RPCSX
+import net.rpcsx.ThemeState
 import net.rpcsx.UserRepository
 import net.rpcsx.dialogs.AlertDialogQueue
 import net.rpcsx.provider.AppDataDocumentProvider
@@ -589,6 +590,42 @@ fun SettingsScreen(
         ) {
             item(key = "hdr_general") {
                 PreferenceHeader(text = stringResource(R.string.settings_category_general))
+            }
+
+            item(key = "theme_mode") {
+                val labels = listOf("System", "Light", "Dark")
+                val values = listOf("system", "light", "dark")
+                SingleSelectionDialog(
+                    currentValue = labels[values.indexOf(ThemeState.mode).coerceAtLeast(0)],
+                    values = labels,
+                    icon = null,
+                    title = "Theme",
+                    onValueChange = { label ->
+                        ThemeState.mode = values[labels.indexOf(label).coerceAtLeast(0)]
+                    }
+                )
+            }
+
+            if (ThemeState.dynamicSupported) {
+                item(key = "theme_dynamic") {
+                    SwitchPreference(
+                        checked = ThemeState.dynamicColor,
+                        title = "Material You colors",
+                        subtitle = { PreferenceSubtitle(text = "Use colors from your system wallpaper", maxLines = 2) },
+                        leadingIcon = null,
+                        onClick = { ThemeState.dynamicColor = it }
+                    )
+                }
+            }
+
+            item(key = "theme_amoled") {
+                SwitchPreference(
+                    checked = ThemeState.amoled,
+                    title = "AMOLED black",
+                    subtitle = { PreferenceSubtitle(text = "True-black backgrounds in dark mode (saves power on OLED screens)", maxLines = 2) },
+                    leadingIcon = null,
+                    onClick = { ThemeState.amoled = it }
+                )
             }
 
             item(
