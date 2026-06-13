@@ -112,7 +112,6 @@ fun ClankerThemesScreen(navigateBack: () -> Unit) {
         // live when their parent toggle flips.
         var roundedCorners by remember { mutableStateOf(GameViewTheme.roundedCorners) }
         var radiusDp by remember { mutableStateOf(GameViewTheme.cornerRadiusDp.toFloat()) }
-        var cornerColor by remember { mutableStateOf(GameViewTheme.cornerColor) }
         var border by remember { mutableStateOf(GameViewTheme.border) }
         var borderWidthDp by remember { mutableStateOf(GameViewTheme.borderWidthDp.toFloat()) }
         var borderColor by remember { mutableStateOf(GameViewTheme.borderColor) }
@@ -186,17 +185,8 @@ fun ClankerThemesScreen(navigateBack: () -> Unit) {
                     onValueChange = { GameViewTheme.cornerRadiusDp = it.toInt(); radiusDp = it.toInt().toFloat() },
                     title = stringResource(R.string.clanker_gv_radius),
                     enabled = roundedCorners,
-                    valueRange = 0f..120f,
+                    valueRange = 0f..64f,
                     valueContent = { Text("${radiusDp.toInt()} dp") }
-                )
-            }
-            item(key = "gv_corner_color") {
-                ColorPreference(
-                    title = stringResource(R.string.clanker_gv_corner_color),
-                    subtitle = stringResource(R.string.clanker_gv_corner_color_summary),
-                    color = cornerColor,
-                    enabled = roundedCorners,
-                    onColor = { GameViewTheme.cornerColor = it; cornerColor = it }
                 )
             }
             item(key = "gv_border") {
@@ -214,7 +204,7 @@ fun ClankerThemesScreen(navigateBack: () -> Unit) {
                     onValueChange = { GameViewTheme.borderWidthDp = it.toInt(); borderWidthDp = it.toInt().toFloat() },
                     title = stringResource(R.string.clanker_gv_border_width),
                     enabled = border,
-                    valueRange = 0f..40f,
+                    valueRange = 0f..16f,
                     valueContent = { Text("${borderWidthDp.toInt()} dp") }
                 )
             }

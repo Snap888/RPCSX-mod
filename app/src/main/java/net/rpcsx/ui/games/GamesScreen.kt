@@ -51,6 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import net.rpcsx.utils.GameViewTheme
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -306,10 +310,20 @@ fun GameItem(game: Game, onConfigure: () -> Unit = {}) {
             }
         }
 
+        // Opt-in library-tile theming (Clanker Settings > Themes > Game tiles).
+        // Clipping the Card rounds the tile; the cover/icon aspect ratio lives on
+        // the inner image box, so it is unaffected.
+        val tileShape = if (GameViewTheme.roundedCorners)
+            RoundedCornerShape(GameViewTheme.cornerRadiusDp.dp)
+        else if (TileDisplay.isBoxArt) MaterialTheme.shapes.medium else RectangleShape
+        val tileBorder = if (GameViewTheme.border && GameViewTheme.borderWidthDp > 0)
+            BorderStroke(GameViewTheme.borderWidthDp.dp, Color(GameViewTheme.borderColor))
+        else null
         Card(
-            shape = if (TileDisplay.isBoxArt) MaterialTheme.shapes.medium else RectangleShape,
+            shape = tileShape,
             modifier = Modifier
                 .fillMaxSize()
+                .then(if (tileBorder != null) Modifier.border(tileBorder, tileShape) else Modifier)
                 .combinedClickable(onClick = click@{
                     if (game.hasFlag(GameFlag.Locked)) {
                         AlertDialogQueue.showDialog(
