@@ -86,6 +86,7 @@ class RPCSX {
     external fun systemInfo(): String
     external fun settingsGet(path: String): String
     external fun settingsSet(path: String, value: String): Boolean
+    external fun setMaxCompileThreads(count: Int)
     external fun getState() : Int
     external fun kill()
     external fun resume()

@@ -15,14 +15,17 @@ import net.rpcsx.utils.GeneralSettings.boolean
  * emulator expects is simply a lower thread count - this picks a memory-safe one
  * automatically so testers never have to find the buried setting.
  *
- * IMPORTANT: this does NOT change any emulator (RPCSX core) code or its throttle
- * - it only writes a saner value into the existing "Max LLVM Compile Threads"
- * config on constrained devices, which is exactly what config defaults are for.
- * High-memory devices get 0 (auto/all cores) - identical to stock behaviour.
+ * IMPORTANT: this does not invent a divergent recompiler mechanism. It feeds a
+ * device-safe value into the core's existing per-pool thread sizing via a small
+ * Android-only cap (setMaxCompileThreads -> get_compile_thread_cap). Unlike
+ * writing the "Max LLVM Compile Threads" config, the cap is applied to the
+ * EFFECTIVE thread count, so a per-game custom config (which overrides the global
+ * config at boot) cannot silently undo it - that override was why a capped device
+ * still OOM'd. The cap is transparent: it leaves the user's visible setting alone.
+ * High-memory devices get 0 (no cap / all cores) - identical to stock behaviour.
  */
 object CompileThreadPolicy {
     private const val KEY = "auto_compile_threads"
-    private const val CONFIG_PATH = "Core@@Max LLVM Compile Threads"
 
     /** Master switch (Clanker Settings). Default on: harmless on high-RAM. */
     var enabled: Boolean
@@ -55,12 +58,12 @@ object CompileThreadPolicy {
     }
 
     /**
-     * Push the effective thread count into the core config. Call once after the
+     * Install the effective compile-thread cap in the core. Call once after the
      * core is initialized and whenever the toggle changes - before any game boots.
-     * When disabled, restores 0 (auto) so "off" == stock RPCSX behaviour.
+     * When disabled (or on high-RAM devices) the cap is 0 == no cap == stock RPCSX.
      */
     fun apply(context: Context) {
-        val threads = if (enabled) safeThreads(context) else 0
-        runCatching { RPCSX.instance.settingsSet(CONFIG_PATH, threads.toString()) }
+        val cap = if (enabled) safeThreads(context) else 0
+        runCatching { RPCSX.instance.setMaxCompileThreads(cap) }
     }
 }

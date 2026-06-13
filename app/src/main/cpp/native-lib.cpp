@@ -54,6 +54,7 @@ struct RPCSXApi {
   bool (*customConfigSet)(std::string_view serial, std::string_view path, std::string_view valueString);
   bool (*customConfigImport)(std::string_view serial, std::string_view yaml);
   void *(*setCustomDriver)(void *driverHandle);
+  void (*setMaxCompileThreads)(int count);
 };
 
 struct RPCSXLibrary : RPCSXApi {
@@ -125,6 +126,7 @@ struct RPCSXLibrary : RPCSXApi {
     result.customConfigSet = reinterpret_cast<decltype(customConfigSet)>(dlsym(handle, "_rpcsx_customConfigSet"));
     result.customConfigImport = reinterpret_cast<decltype(customConfigImport)>(dlsym(handle, "_rpcsx_customConfigImport"));
     result.setCustomDriver = reinterpret_cast<decltype(setCustomDriver)>(dlsym(handle, "_rpcsx_setCustomDriver"));
+    result.setMaxCompileThreads = reinterpret_cast<decltype(setMaxCompileThreads)>(dlsym(handle, "_rpcsx_setMaxCompileThreads"));
     // clang-format on
 
     return result;
@@ -288,6 +290,13 @@ Java_net_rpcsx_RPCSX_settingsGet(JNIEnv *env, jobject, jstring jpath) {
 extern "C" JNIEXPORT jboolean JNICALL Java_net_rpcsx_RPCSX_settingsSet(
     JNIEnv *env, jobject, jstring jpath, jstring jvalue) {
   return rpcsxLib.settingsSet(unwrap(env, jpath), unwrap(env, jvalue));
+}
+
+extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setMaxCompileThreads(
+    JNIEnv *, jobject, jint count) {
+  // Guard: an older core library may not export this symbol.
+  if (!rpcsxLib.setMaxCompileThreads) return;
+  rpcsxLib.setMaxCompileThreads(count);
 }
 
 extern "C" JNIEXPORT jstring JNICALL
