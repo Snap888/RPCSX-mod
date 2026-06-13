@@ -29,6 +29,8 @@ import net.rpcsx.ui.settings.components.core.PreferenceSubtitle
 import net.rpcsx.ui.settings.components.preference.HomePreference
 import net.rpcsx.ui.settings.components.preference.SingleSelectionDialog
 import net.rpcsx.ui.settings.components.preference.SwitchPreference
+import androidx.compose.ui.platform.LocalContext
+import net.rpcsx.utils.CompileThreadPolicy
 import net.rpcsx.utils.GeneralSettings
 
 /**
@@ -158,6 +160,31 @@ fun ClankerFeaturesScreen(navigateBack: () -> Unit) {
 
             item(key = "hdr_performance") {
                 PreferenceHeader(text = stringResource(R.string.clanker_features_performance))
+            }
+            item(key = "auto_compile_threads") {
+                val context = LocalContext.current
+                var itemValue by remember { mutableStateOf(CompileThreadPolicy.enabled) }
+                val safe = remember { CompileThreadPolicy.safeThreads(context) }
+                SwitchPreference(
+                    checked = itemValue,
+                    title = stringResource(R.string.clanker_auto_threads),
+                    subtitle = {
+                        PreferenceSubtitle(
+                            text = stringResource(
+                                R.string.clanker_auto_threads_summary,
+                                if (safe == 0) stringResource(R.string.clanker_auto_threads_all)
+                                else "$safe threads"
+                            ),
+                            maxLines = 3
+                        )
+                    },
+                    leadingIcon = null,
+                    onClick = { value ->
+                        CompileThreadPolicy.enabled = value
+                        CompileThreadPolicy.apply(context)
+                        itemValue = value
+                    }
+                )
             }
             item(key = "sustained_performance") {
                 var itemValue by remember {

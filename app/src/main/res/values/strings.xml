@@ -115,6 +115,9 @@
     <string name="clanker_theme_amoled_summary">True-black backgrounds in dark mode (saves power on OLED screens)</string>
     <string name="clanker_features_library">Game library</string>
     <string name="clanker_features_performance">Performance</string>
+    <string name="clanker_auto_threads">Auto-limit compile threads (low RAM)</string>
+    <string name="clanker_auto_threads_summary">Caps how many game modules compile at once so low-memory devices don\'t run out of memory and close during first-boot compilation. This device: %1$s. No effect on high-memory devices.</string>
+    <string name="clanker_auto_threads_all">all cores</string>
     <string name="clanker_tile_mode">Game tile layout</string>
     <string name="clanker_tile_mode_summary">How games appear in the library grid</string>
     <string name="clanker_tile_icons">Icons</string>
