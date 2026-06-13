@@ -16,11 +16,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowInsetsControllerCompat
 import net.rpcsx.utils.GeneralSettings
 import net.rpcsx.utils.GeneralSettings.boolean
+import net.rpcsx.utils.GeneralSettings.int
 import net.rpcsx.utils.GeneralSettings.string
 
 object colors {
@@ -182,6 +185,7 @@ object ThemeState {
     private val _mode = mutableStateOf(GeneralSettings["theme_mode"].string("system"))
     private val _dynamic = mutableStateOf(GeneralSettings["theme_dynamic"].boolean(false))
     private val _amoled = mutableStateOf(GeneralSettings["theme_amoled"].boolean(false))
+    private val _accent = mutableStateOf(GeneralSettings["theme_accent"].int(0))
 
     // Reading these in a composable subscribes it; assigning persists + recomposes.
     var mode: String
@@ -193,6 +197,11 @@ object ThemeState {
     var amoled: Boolean
         get() = _amoled.value
         set(value) { _amoled.value = value; GeneralSettings["theme_amoled"] = value }
+
+    // Custom accent (ARGB). 0 = off (use the built-in / Material You scheme).
+    var accentColor: Int
+        get() = _accent.value
+        set(value) { _accent.value = value; GeneralSettings["theme_accent"] = value }
 
     val dynamicSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 }
@@ -214,6 +223,23 @@ fun RPCSXTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         darkTheme -> darkScheme
         else -> lightScheme
+    }
+
+    // Custom accent: recolour the primary family from the chosen seed. Kept to the
+    // primary group (buttons, switches, sliders, selection) so contrast stays sane;
+    // on-colours are derived from luminance. Applied before AMOLED so true-black
+    // surfaces still win. 0 = off.
+    if (ThemeState.accentColor != 0) {
+        val accent = Color(ThemeState.accentColor)
+        fun on(c: Color) = if (c.luminance() > 0.5f) Color(0xFF101012) else Color.White
+        val container = lerp(accent, colors.surface, 0.62f)
+        colors = colors.copy(
+            primary = accent,
+            onPrimary = on(accent),
+            primaryContainer = container,
+            onPrimaryContainer = on(container),
+            inversePrimary = lerp(accent, if (darkTheme) Color.Black else Color.White, 0.35f),
+        )
     }
 
     // AMOLED: true-black surfaces for OLED handhelds (only meaningful in dark).

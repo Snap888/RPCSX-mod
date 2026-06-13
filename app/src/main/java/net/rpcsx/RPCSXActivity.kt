@@ -52,6 +52,17 @@ class RPCSXActivity : Activity() {
             }
         }
 
+        // Apply opt-in game-view theming (rounded corners / border). Safe overlay,
+        // never touches the render surface; defaults render exactly as before.
+        binding.gameFrame.configure(
+            roundedCorners = net.rpcsx.utils.GameViewTheme.roundedCorners,
+            cornerRadiusDp = net.rpcsx.utils.GameViewTheme.cornerRadiusDp,
+            cornerColor = net.rpcsx.utils.GameViewTheme.cornerColor,
+            border = net.rpcsx.utils.GameViewTheme.border,
+            borderWidthDp = net.rpcsx.utils.GameViewTheme.borderWidthDp,
+            borderColor = net.rpcsx.utils.GameViewTheme.borderColor,
+        )
+
         binding.oscToggle.setOnClickListener {
             binding.padOverlay.isInvisible = !binding.padOverlay.isInvisible
             binding.oscToggle.setImageResource(if (binding.padOverlay.isInvisible) R.drawable.ic_osc_off else R.drawable.ic_show_osc)

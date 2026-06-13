@@ -26,11 +26,14 @@ import net.rpcsx.ui.games.TileDisplay
 import net.rpcsx.ui.settings.components.core.PreferenceHeader
 import net.rpcsx.ui.settings.components.core.PreferenceIcon
 import net.rpcsx.ui.settings.components.core.PreferenceSubtitle
+import net.rpcsx.ui.settings.components.ColorPreference
 import net.rpcsx.ui.settings.components.preference.HomePreference
 import net.rpcsx.ui.settings.components.preference.SingleSelectionDialog
+import net.rpcsx.ui.settings.components.preference.SliderPreference
 import net.rpcsx.ui.settings.components.preference.SwitchPreference
 import androidx.compose.ui.platform.LocalContext
 import net.rpcsx.utils.CompileThreadPolicy
+import net.rpcsx.utils.GameViewTheme
 import net.rpcsx.utils.GeneralSettings
 
 /**
@@ -105,6 +108,15 @@ fun ClankerSettingsScreen(
 @Composable
 fun ClankerThemesScreen(navigateBack: () -> Unit) {
     ClankerScaffold(stringResource(R.string.clanker_themes), navigateBack) { contentPadding ->
+        // Game-view theming state, lifted so the radius/colour rows enable/disable
+        // live when their parent toggle flips.
+        var roundedCorners by remember { mutableStateOf(GameViewTheme.roundedCorners) }
+        var radiusDp by remember { mutableStateOf(GameViewTheme.cornerRadiusDp.toFloat()) }
+        var cornerColor by remember { mutableStateOf(GameViewTheme.cornerColor) }
+        var border by remember { mutableStateOf(GameViewTheme.border) }
+        var borderWidthDp by remember { mutableStateOf(GameViewTheme.borderWidthDp.toFloat()) }
+        var borderColor by remember { mutableStateOf(GameViewTheme.borderColor) }
+
         LazyColumn(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             item(key = "hdr_theme") {
                 PreferenceHeader(text = stringResource(R.string.clanker_theme_appearance))
@@ -144,6 +156,75 @@ fun ClankerThemesScreen(navigateBack: () -> Unit) {
                     subtitle = { PreferenceSubtitle(text = stringResource(R.string.clanker_theme_amoled_summary), maxLines = 2) },
                     leadingIcon = null,
                     onClick = { ThemeState.amoled = it }
+                )
+            }
+            item(key = "accent_color") {
+                ColorPreference(
+                    title = stringResource(R.string.clanker_accent),
+                    subtitle = stringResource(R.string.clanker_accent_summary),
+                    color = ThemeState.accentColor,
+                    allowOff = true,
+                    onColor = { ThemeState.accentColor = it }
+                )
+            }
+
+            item(key = "hdr_gameview") {
+                PreferenceHeader(text = stringResource(R.string.clanker_gameview_header))
+            }
+            item(key = "gv_rounded") {
+                SwitchPreference(
+                    checked = roundedCorners,
+                    title = stringResource(R.string.clanker_gv_rounded),
+                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.clanker_gv_rounded_summary), maxLines = 2) },
+                    leadingIcon = null,
+                    onClick = { GameViewTheme.roundedCorners = it; roundedCorners = it }
+                )
+            }
+            item(key = "gv_radius") {
+                SliderPreference(
+                    value = radiusDp,
+                    onValueChange = { GameViewTheme.cornerRadiusDp = it.toInt(); radiusDp = it.toInt().toFloat() },
+                    title = stringResource(R.string.clanker_gv_radius),
+                    enabled = roundedCorners,
+                    valueRange = 0f..120f,
+                    valueContent = { Text("${radiusDp.toInt()} dp") }
+                )
+            }
+            item(key = "gv_corner_color") {
+                ColorPreference(
+                    title = stringResource(R.string.clanker_gv_corner_color),
+                    subtitle = stringResource(R.string.clanker_gv_corner_color_summary),
+                    color = cornerColor,
+                    enabled = roundedCorners,
+                    onColor = { GameViewTheme.cornerColor = it; cornerColor = it }
+                )
+            }
+            item(key = "gv_border") {
+                SwitchPreference(
+                    checked = border,
+                    title = stringResource(R.string.clanker_gv_border),
+                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.clanker_gv_border_summary), maxLines = 2) },
+                    leadingIcon = null,
+                    onClick = { GameViewTheme.border = it; border = it }
+                )
+            }
+            item(key = "gv_border_width") {
+                SliderPreference(
+                    value = borderWidthDp,
+                    onValueChange = { GameViewTheme.borderWidthDp = it.toInt(); borderWidthDp = it.toInt().toFloat() },
+                    title = stringResource(R.string.clanker_gv_border_width),
+                    enabled = border,
+                    valueRange = 0f..40f,
+                    valueContent = { Text("${borderWidthDp.toInt()} dp") }
+                )
+            }
+            item(key = "gv_border_color") {
+                ColorPreference(
+                    title = stringResource(R.string.clanker_gv_border_color),
+                    subtitle = stringResource(R.string.clanker_gv_border_color_summary),
+                    color = borderColor,
+                    enabled = border,
+                    onColor = { GameViewTheme.borderColor = it; borderColor = it }
                 )
             }
         }
