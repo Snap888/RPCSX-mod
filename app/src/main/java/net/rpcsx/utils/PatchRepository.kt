@@ -54,20 +54,30 @@ object PatchRepository {
     private val json = Json { ignoreUnknownKeys = true }
     private val client = OkHttpClient()
 
+    // Cache the parsed list: patchesList() is a JNI call that re-parses the
+    // whole (~hundreds of KB) patch set every time, and listForSerial calls it
+    // per per-game screen open. Invalidated when patches/enabled-state change.
+    @Volatile
+    private var cached: List<Patch>? = null
+
+    fun invalidate() { cached = null }
+
     // Mirrors the core's patch_engine::get_patches_path() (= <config>/patches/),
     // since g_android_config_dir = rootDirectory + "config/".
     fun patchesDir(): File = File(RPCSX.rootDirectory + "config/patches/")
 
     fun list(): List<Patch> {
+        cached?.let { return it }
         val raw = runCatching { RPCSX.instance.patchesList() }.getOrElse {
             android.util.Log.e("PatchRepository", "patchesList() JNI call failed", it)
             return emptyList()
         }
         return runCatching {
             json.decodeFromString<List<Patch>>(raw)
-        }.getOrElse {
+        }.onSuccess { cached = it }.getOrElse {
             // Distinguish "core returned nothing" from "we couldn't parse it" - the
             // raw length + head make it obvious in logcat which one happened.
+            // (Don't cache a parse failure - it may be transient.)
             android.util.Log.e(
                 "PatchRepository",
                 "failed to parse patch list (len=${raw.length}): ${raw.take(200)}", it
@@ -111,14 +121,14 @@ object PatchRepository {
 
     fun setEnabled(patch: Patch, enabled: Boolean): Boolean = runCatching {
         RPCSX.instance.patchSetEnabled(patch.hash, patch.name, enabled)
-    }.getOrDefault(false)
+    }.getOrDefault(false).also { invalidate() }
 
     /** Flip every hash behind a grouped patch (attempts all; true if all succeed). */
     fun setEnabled(group: PatchGroup, enabled: Boolean): Boolean =
         group.hashes.map { hash ->
             runCatching { RPCSX.instance.patchSetEnabled(hash, group.name, enabled) }
                 .getOrDefault(false)
-        }.all { it }
+        }.all { it }.also { invalidate() }
 
     /**
      * Download the official RPCS3 patch set. The API answers with JSON
@@ -147,6 +157,7 @@ object PatchRepository {
 
                 patchesDir().mkdirs()
                 File(patchesDir(), "patch.yml").writeText(content)
+                invalidate()
                 PatchDownloadResult.Success(updated = true)
             }
         } catch (e: Throwable) {
@@ -158,6 +169,7 @@ object PatchRepository {
     fun importLocal(content: String): Boolean = runCatching {
         patchesDir().mkdirs()
         File(patchesDir(), "imported_patch.yml").writeText(content)
+        invalidate()
         true
     }.getOrDefault(false)
 }

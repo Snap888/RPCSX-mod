@@ -7,6 +7,7 @@ import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -17,6 +18,7 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 object GitHub {
@@ -169,49 +171,65 @@ object GitHub {
     ): DownloadStatus = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder().url(assetUrl).head().build()
-            val response = client.newCall(request).execute()
-            val contentLength = response.header("Content-Length")?.toLongOrNull() ?: return@withContext DownloadStatus.Error("Unable to get file size")
-            val supportsRange = response.header("Accept-Ranges") == "bytes"
+            // .use the HEAD response so its connection is released back to the pool
+            // even when we bail early below.
+            val contentLength: Long
+            val supportsRange: Boolean
+            client.newCall(request).execute().use { response ->
+                contentLength = response.header("Content-Length")?.toLongOrNull()
+                    ?: return@withContext DownloadStatus.Error("Unable to get file size")
+                supportsRange = response.header("Accept-Ranges") == "bytes"
+            }
             if (!supportsRange) return@withContext DownloadStatus.Error("Server does not support range requests")
 
-            RandomAccessFile(destinationFile, "rw").setLength(contentLength)
+            RandomAccessFile(destinationFile, "rw").use { it.setLength(contentLength) }
 
             val chunkSize = contentLength / threadCount
             val totalBytesRead = AtomicLong(0)
-            val deferredList = (0 until threadCount).map { i ->
-                val start = i * chunkSize
-                val end = if (i == threadCount - 1) contentLength - 1 else (start + chunkSize - 1)
+            // Throttle progress to whole-percent changes: the raw callback fired once
+            // per 32 KiB across 4 threads (thousands of UI updates), which choked the
+            // download dialog's recomposition.
+            val lastPercent = AtomicInteger(-1)
 
-                async(Dispatchers.IO) {
-                    val partRequest = Request.Builder()
-                        .url(assetUrl)
-                        .addHeader("Range", "bytes=$start-$end")
-                        .build()
+            // coroutineScope so that if one chunk throws, the siblings are cancelled
+            // instead of running to completion against an already-doomed download.
+            coroutineScope {
+                (0 until threadCount).map { i ->
+                    val start = i * chunkSize
+                    val end = if (i == threadCount - 1) contentLength - 1 else (start + chunkSize - 1)
 
-                    client.newCall(partRequest).execute().use { partResponse ->
-                        if (!partResponse.isSuccessful) {
-                            throw IOException("Part $i failed")
+                    async(Dispatchers.IO) {
+                        val partRequest = Request.Builder()
+                            .url(assetUrl)
+                            .addHeader("Range", "bytes=$start-$end")
+                            .build()
+
+                        client.newCall(partRequest).execute().use { partResponse ->
+                            if (!partResponse.isSuccessful) {
+                                throw IOException("Part $i failed")
+                            }
+
+                            val inputStream = partResponse.body.byteStream()
+                            // .use so the file handle closes on a thrown read/write too.
+                            RandomAccessFile(destinationFile, "rw").use { raf ->
+                                raf.seek(start)
+
+                                val buffer = ByteArray(32 * 1024)
+                                var read: Int
+
+                                while (inputStream.read(buffer).also { read = it } != -1) {
+                                    raf.write(buffer, 0, read)
+                                    val bytesReadNow = totalBytesRead.addAndGet(read.toLong())
+                                    val pct = ((bytesReadNow * 100) / contentLength).toInt()
+                                    if (lastPercent.getAndSet(pct) != pct) {
+                                        progressCallback(bytesReadNow, contentLength)
+                                    }
+                                }
+                            }
                         }
-
-                        val inputStream = partResponse.body.byteStream()
-                        val raf = RandomAccessFile(destinationFile, "rw")
-                        raf.seek(start)
-
-                        val buffer = ByteArray(32 * 1024)
-                        var read: Int
-
-                        while (inputStream.read(buffer).also { read = it } != -1) {
-                            raf.write(buffer, 0, read)
-                            val bytesReadNow = totalBytesRead.addAndGet(read.toLong())
-                            progressCallback(bytesReadNow, contentLength)
-                        }
-
-                        raf.close()
                     }
-                }
+                }.awaitAll()
             }
-
-            deferredList.awaitAll()
             return@withContext DownloadStatus.Success
         } catch (e: Exception) {
             Log.e("GitHub", "Parallel download failed", e)

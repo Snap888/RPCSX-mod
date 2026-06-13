@@ -59,6 +59,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import net.rpcsx.utils.GeneralSettings
 import net.rpcsx.utils.GeneralSettings.string
 import kotlinx.coroutines.launch
@@ -269,20 +271,18 @@ fun GameItem(game: Game, onConfigure: () -> Unit = {}) {
                     }
                 })
         ) {
-            if (game.info.iconPath.value != null && !iconExists.value) {
-                if (game.progressList.isNotEmpty()) {
-                    val progressId = ProgressRepository.getItem(game.progressList.first().id)
-                    if (progressId != null) {
-                        val progressValue = progressId.value.value
-                        val progressMax = progressId.value.max
-
-                        iconExists.value =
-                            (progressMax.longValue != 0L && progressValue.longValue == progressMax.longValue) || File(
-                                game.info.iconPath.value!!
-                            ).exists()
-                    }
-                } else {
-                    iconExists.value = File(game.info.iconPath.value!!).exists()
+            // Check the icon file off the main thread (was a per-recomposition
+            // File.exists() stat in composition -> grid jank during installs).
+            // Re-checks when the icon path or the install-progress state changes.
+            val iconPath = game.info.iconPath.value
+            val progressCount = game.progressList.size
+            LaunchedEffect(iconPath, progressCount) {
+                if (iconPath == null) {
+                    iconExists.value = false
+                    return@LaunchedEffect
+                }
+                if (!iconExists.value) {
+                    iconExists.value = withContext(Dispatchers.IO) { File(iconPath).exists() }
                 }
             }
 
