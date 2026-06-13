@@ -7,24 +7,22 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.util.AttributeSet
-import android.view.View
+import android.view.SurfaceView
 
 /**
- * A cosmetic overlay drawn ON TOP of the game surface but BELOW the pad controls.
+ * Cosmetic frame drawn over the running game: optional rounded corners (a mask
+ * filled with a chosen colour outside a rounded rect) and an optional coloured
+ * border.
  *
- * It does two things, both purely visual and both safe across every GPU /
- * compositor (unlike clipping a SurfaceView, which is what tends to break):
- *  - rounded corners: fills the area OUTSIDE a rounded rectangle with a chosen
- *    colour, so the square surface reads as having rounded corners;
- *  - a border: strokes the rounded rectangle outline in a chosen colour.
- *
- * The view never consumes touch events (it is not clickable/focusable), so input
- * still reaches the surface and the pad overlay untouched.
+ * It is a SurfaceView, NOT a plain View, on purpose. The game is rendered into
+ * its own SurfaceView, which punches a transparent hole in the window and clears
+ * any plain sibling View's pixels in that rect - so a plain-View overlay never
+ * shows over the game (verified broken on Adreno). PadOverlay works precisely
+ * because it is a SurfaceView that draws through the view path; this mirrors that
+ * proven pattern. It draws nothing into its own surface (no holder use) and never
+ * consumes input, so the game surface and controls are unaffected.
  */
-class GameFrameOverlay @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-) : View(context, attrs) {
+class GameFrameOverlay(context: Context?, attrs: AttributeSet?) : SurfaceView(context, attrs) {
 
     private var radiusPx = 0f
     private var drawCornerMask = false
@@ -38,10 +36,11 @@ class GameFrameOverlay @JvmOverloads constructor(
     private val rect = RectF()
 
     init {
-        // Purely decorative: do not steal input from the surface / pad overlay.
         isClickable = false
         isFocusable = false
-        setWillNotDraw(false)
+        // Transparent so the game shows through everywhere we don't paint. Matches
+        // PadOverlay (which also relies on the view-draw path over the game).
+        setBackgroundColor(Color.TRANSPARENT)
     }
 
     private fun dp(v: Int) = v * resources.displayMetrics.density
@@ -60,19 +59,19 @@ class GameFrameOverlay @JvmOverloads constructor(
         drawBorder = border && borderWidthDp > 0 && Color.alpha(borderColor) > 0
         borderPaint.color = borderColor
         borderPaint.strokeWidth = dp(borderWidthDp)
-        // Nothing to draw at all -> stay fully out of the way.
         visibility = if (drawCornerMask || drawBorder) VISIBLE else GONE
         invalidate()
     }
 
-    override fun onDraw(canvas: Canvas) {
+    override fun draw(canvas: Canvas) {
+        super.draw(canvas)
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
         if (drawCornerMask) {
-            // Area between the full rect and the rounded rect, filled with the
-            // corner colour -> the surface's square corners are hidden.
+            // Fill the area between the full rect and the rounded rect with the
+            // corner colour, so the square surface reads as rounded.
             maskPath.reset()
             maskPath.addRect(0f, 0f, w, h, Path.Direction.CW)
             roundPath.reset()

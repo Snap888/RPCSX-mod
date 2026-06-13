@@ -753,9 +753,14 @@ fun GamesDestination(
             modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
             topBar = {
                 CenterAlignedTopAppBar(
+                    // Banner takes the (accent-adapted) container colour; the
+                    // wordmark + icons use the readable on-container colour so the
+                    // "RPCSX" text stays standard instead of being tinted the accent.
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
                     title = {
                         Text(

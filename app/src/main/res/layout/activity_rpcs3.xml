@@ -13,13 +13,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <net.rpcsx.overlay.GameFrameOverlay
-        android:id="@+id/gameFrame"
+    <net.rpcsx.overlay.PadOverlay
+        android:id="@+id/padOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <net.rpcsx.overlay.PadOverlay
-        android:id="@+id/padOverlay"
+    <!-- Cosmetic frame (rounded corners / border). A SurfaceView, placed after
+         PadOverlay so its view-draw composites on top of the game and controls;
+         a plain View here is cleared by the game surface's punch-hole. -->
+    <net.rpcsx.overlay.GameFrameOverlay
+        android:id="@+id/gameFrame"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
