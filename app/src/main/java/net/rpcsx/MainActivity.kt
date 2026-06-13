@@ -25,6 +25,10 @@ class MainActivity : ComponentActivity() {
 
         GeneralSettings.init(this)
 
+        // If the previous session was killed (OOM/SIGKILL/native crash), surface
+        // the real reason - the core log cannot capture an uncatchable kill.
+        net.rpcsx.utils.ExitReasonReporter.reportLastAbnormalExit(this)
+
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         if (!RPCSX.initialized) {
