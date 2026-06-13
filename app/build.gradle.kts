@@ -130,6 +130,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     implementation(libs.squareup.okhttp3)
     implementation(libs.androidx.documentfile)
     implementation(libs.materialswitch)

@@ -95,6 +95,7 @@ import net.rpcsx.ui.channels.uiTextToChannel
 import net.rpcsx.ui.channels.uiTextToChannels
 import net.rpcsx.ui.drivers.GpuDriversScreen
 import net.rpcsx.ui.games.GamesScreen
+import net.rpcsx.ui.games.TileDisplay
 import net.rpcsx.ui.settings.AdvancedSettingsScreen
 import net.rpcsx.ui.settings.ControllerSettings
 import net.rpcsx.ui.settings.SettingsScreen
@@ -762,6 +763,16 @@ fun GamesDestination(
                                     contentDescription = null
                                 )
                             }
+                        }
+                        // Toggle between landscape icons and portrait box-art covers.
+                        IconButton(onClick = { TileDisplay.toggle() }) {
+                            Icon(
+                                painter = painterResource(
+                                    if (TileDisplay.mode == "boxart") R.drawable.ic_grid_on
+                                    else R.drawable.ic_grid_off
+                                ),
+                                contentDescription = "Toggle box art"
+                            )
                         }
                     }
                 )

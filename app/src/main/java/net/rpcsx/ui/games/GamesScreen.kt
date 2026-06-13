@@ -8,6 +8,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,9 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
+import net.rpcsx.utils.GeneralSettings
+import net.rpcsx.utils.GeneralSettings.string
 import kotlinx.coroutines.launch
 import net.rpcsx.BuildConfig
 import net.rpcsx.EmulatorState
@@ -83,6 +87,22 @@ private fun withAlpha(color: Color, alpha: Float): Color {
         red = color.red, green = color.green, blue = color.blue, alpha = alpha
     )
 }
+
+/** Game tile display mode, persisted in app settings and observed by the grid. */
+object TileDisplay {
+    var mode by mutableStateOf(GeneralSettings["tile_mode"].string("icon"))
+        private set
+
+    fun toggle() {
+        mode = if (mode == "boxart") "icon" else "boxart"
+        GeneralSettings["tile_mode"] = mode
+    }
+}
+
+/** GameTDB front-cover URL for a PS3 title id (Coil fetches + disk-caches it). */
+private fun gametdbCoverUrl(titleId: String?): String? =
+    titleId?.takeIf { it.isNotBlank() }
+        ?.let { "https://art.gametdb.com/ps3/coverM/EN/$it.jpg" }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -197,7 +217,7 @@ fun GameItem(game: Game, onConfigure: () -> Unit = {}) {
         }
 
         Card(
-            shape = RectangleShape,
+            shape = if (TileDisplay.mode == "boxart") MaterialTheme.shapes.medium else RectangleShape,
             modifier = Modifier
                 .fillMaxSize()
                 .combinedClickable(onClick = click@{
@@ -266,13 +286,34 @@ fun GameItem(game: Game, onConfigure: () -> Unit = {}) {
                 }
             }
 
+            val boxArt = TileDisplay.mode == "boxart" && game.info.name.value != "VSH"
+            val coverUrl = if (boxArt) gametdbCoverUrl(game.info.titleId.value) else null
+
             Box(
-                modifier = Modifier
-                    .height(110.dp)
+                modifier = (if (boxArt) Modifier.fillMaxWidth().aspectRatio(2f / 3f)
+                            else Modifier.height(110.dp).fillMaxSize())
                     .align(alignment = Alignment.CenterHorizontally)
-                    .fillMaxSize()
             ) {
-                if (game.info.iconPath.value != null && iconExists.value) {
+                if (boxArt && coverUrl != null) {
+                    // Portrait cover from GameTDB (disk-cached by Coil); fall back to
+                    // the local PS3 icon when the cover 404s or fails to load.
+                    SubcomposeAsyncImage(
+                        model = coverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        error = {
+                            if (game.info.iconPath.value != null) {
+                                AsyncImage(
+                                    model = game.info.iconPath.value,
+                                    contentScale = ContentScale.Crop,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    )
+                } else if (game.info.iconPath.value != null && iconExists.value) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -638,7 +679,8 @@ fun GamesScreen(navigateToConfig: (Game) -> Unit = {}) {
         },
     ) {
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 320.dp * 0.6f),
+            // Portrait covers tile densely (narrower cells); landscape icons keep the wider cell.
+            columns = GridCells.Adaptive(minSize = if (TileDisplay.mode == "boxart") 116.dp else 320.dp * 0.6f),
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxSize()
         ) {
