@@ -86,25 +86,35 @@ object PatchRepository {
         }
     }
 
-    /** Patches that apply to a game: ones targeting its serial, plus universal ones. */
-    fun listForSerial(serial: String): List<Patch> =
+    /**
+     * Patches that apply to a specific game. A patch matches when the game's
+     * serial is in its serial list, or when it targets "ALL" serials AND this
+     * game's title - "ALL" in the yml means every region of THAT game, not every
+     * game, so without the title check it would leak patches from unrelated
+     * titles (e.g. LittleBigPlanet patches showing under Demon's Souls).
+     */
+    fun listForSerial(serial: String, title: String? = null): List<Patch> =
         list().filter { p ->
-            // The official patch yml frequently uses the serial "ALL" for
-            // region-independent patches - an exact match hid those here while
-            // the (title-grouped) Patch Manager still showed them.
-            p.serials.isEmpty() || p.serials.any {
-                it.equals(serial, ignoreCase = true) || it.equals("ALL", ignoreCase = true)
-            }
+            p.serials.any { it.equals(serial, ignoreCase = true) } ||
+                (title != null &&
+                    p.serials.any { it.equals("ALL", ignoreCase = true) } &&
+                    p.titles.any { it.equals(title, ignoreCase = true) })
         }
 
     /**
-     * Collapse patches that are identical to the user (same name/author/version/
-     * notes) into one PatchGroup carrying all their hashes. The core lists the
-     * same patch once per game-version hash it targets, which otherwise shows as
-     * confusing duplicate rows with identical metadata.
+     * Collapse the rows that are the SAME patch into one. The core lists a patch
+     * once per program hash it targets, so a single patch shows up N times (once
+     * per game version) with identical metadata. We merge only rows that share
+     * name/author/version/notes AND the same target serials+titles, so multiple
+     * hashes of one patch collapse to a single row while a generically-named
+     * patch (e.g. "60 FPS") for a DIFFERENT game stays separate - merging across
+     * games was what made toggling one row flip many unrelated patches.
      */
     fun group(patches: List<Patch>): List<PatchGroup> =
-        patches.groupBy { listOf(it.name, it.author, it.version, it.notes) }
+        patches.groupBy {
+            listOf(it.name, it.author, it.version, it.notes,
+                   it.serials.sorted(), it.titles.sorted())
+        }
             .map { (_, ps) ->
                 val f = ps.first()
                 PatchGroup(

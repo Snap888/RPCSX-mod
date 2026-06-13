@@ -345,7 +345,10 @@ fun PatchManagerScreen(navigateBack: () -> Unit) {
                     if (isExpanded) {
                         items(
                             group.shown,
-                            key = { "${group.label}/${it.name}/${it.author}/${it.version}" }
+                            // Key on the (disjoint) underlying hashes so two patches
+                            // that share name/author/version can't collide - a
+                            // duplicate LazyColumn key throws and force-closes the app.
+                            key = { "${group.label}/${it.hashes.joinToString("|")}" }
                         ) { patch ->
                             HomeSwitchPreference(
                                 title = patch.name.ifEmpty { "(unnamed patch)" },

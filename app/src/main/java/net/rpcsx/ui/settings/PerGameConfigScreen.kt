@@ -135,7 +135,7 @@ fun PerGameConfigScreen(serial: String, gameName: String, navigateBack: () -> Un
     var patchesLoading by remember { mutableStateOf(true) }
     LaunchedEffect(serial, reloadKey) {
         patchesLoading = true
-        patches = withContext(Dispatchers.IO) { PatchRepository.listForSerial(serial) }
+        patches = withContext(Dispatchers.IO) { PatchRepository.listForSerial(serial, gameName) }
         patchesLoading = false
     }
     // Collapse patches that are identical to the user (registered under several
@@ -294,8 +294,8 @@ fun PerGameConfigScreen(serial: String, gameName: String, navigateBack: () -> Un
                         )
                     }
                 } else {
-                    items(patchGroups, key = { "patch:" + it.name + "/" + it.author + "/" + it.version }) { patch ->
-                        var patchEnabled by remember(patch.name + patch.author + patch.version) { mutableStateOf(patch.enabled) }
+                    items(patchGroups, key = { "patch:" + it.hashes.joinToString("|") }) { patch ->
+                        var patchEnabled by remember(patch.hashes.joinToString("|")) { mutableStateOf(patch.enabled) }
                         val patchSub = listOf(
                             patch.author.takeIf { it.isNotEmpty() }?.let { "by $it" },
                             patch.notes.takeIf { it.isNotEmpty() }
