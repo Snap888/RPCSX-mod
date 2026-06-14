@@ -113,6 +113,23 @@ class RPCSX {
     external fun customConfigImport(serial: String, yaml: String): Boolean
     external fun setCustomDriver(path: String, libraryName: String, hookDir: String): Boolean
 
+    // RPCN (community-PSN online play). All of these may block on network and
+    // MUST be called off the main thread (Dispatchers.IO). The C++ side is
+    // implemented separately by the core build; until then these resolve at
+    // link time so every caller wraps them in runCatching to stay crash-proof.
+    external fun rpcnGetConfig(): String              // JSON {"host","npid","password","token"}
+    external fun rpcnSetCredentials(npid: String, password: String, token: String)
+    external fun rpcnGetHosts(): String               // JSON [{"description","host"}]
+    external fun rpcnAddHost(description: String, host: String): Boolean
+    external fun rpcnRemoveHost(host: String): Boolean
+    external fun rpcnSetActiveHost(host: String)
+    external fun rpcnGetActiveHost(): String
+    external fun rpcnCreateAccount(npid: String, password: String, onlineName: String, email: String, country: String): String
+    external fun rpcnResendToken(): String            // "" success else error
+    external fun rpcnTestConnection(): String         // "" success else error
+    external fun rpcnSetEnabled(enabled: Boolean)
+    external fun rpcnIsEnabled(): Boolean
+
 
     companion object {
         var initialized = false

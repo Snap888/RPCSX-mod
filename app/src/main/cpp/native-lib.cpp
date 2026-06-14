@@ -59,6 +59,18 @@ struct RPCSXApi {
   void (*setThermalFrameCap)(float fps);
   void (*setCpuAffinityMode)(int on);
   void (*setWfeMode)(int on);
+  std::string (*rpcnGetConfig)();
+  void (*rpcnSetCredentials)(std::string_view npid, std::string_view password, std::string_view token);
+  std::string (*rpcnGetHosts)();
+  bool (*rpcnAddHost)(std::string_view description, std::string_view host);
+  bool (*rpcnRemoveHost)(std::string_view host);
+  void (*rpcnSetActiveHost)(std::string_view host);
+  std::string (*rpcnGetActiveHost)();
+  std::string (*rpcnCreateAccount)(std::string_view npid, std::string_view password, std::string_view online_name, std::string_view email, std::string_view country);
+  std::string (*rpcnResendToken)();
+  std::string (*rpcnTestConnection)();
+  void (*rpcnSetEnabled)(int enabled);
+  bool (*rpcnIsEnabled)();
 };
 
 struct RPCSXLibrary : RPCSXApi {
@@ -135,6 +147,18 @@ struct RPCSXLibrary : RPCSXApi {
     result.setThermalFrameCap = reinterpret_cast<decltype(setThermalFrameCap)>(dlsym(handle, "_rpcsx_setThermalFrameCap"));
     result.setCpuAffinityMode = reinterpret_cast<decltype(setCpuAffinityMode)>(dlsym(handle, "_rpcsx_setCpuAffinityMode"));
     result.setWfeMode = reinterpret_cast<decltype(setWfeMode)>(dlsym(handle, "_rpcsx_setWfeMode"));
+    result.rpcnGetConfig = reinterpret_cast<decltype(rpcnGetConfig)>(dlsym(handle, "_rpcsx_rpcnGetConfig"));
+    result.rpcnSetCredentials = reinterpret_cast<decltype(rpcnSetCredentials)>(dlsym(handle, "_rpcsx_rpcnSetCredentials"));
+    result.rpcnGetHosts = reinterpret_cast<decltype(rpcnGetHosts)>(dlsym(handle, "_rpcsx_rpcnGetHosts"));
+    result.rpcnAddHost = reinterpret_cast<decltype(rpcnAddHost)>(dlsym(handle, "_rpcsx_rpcnAddHost"));
+    result.rpcnRemoveHost = reinterpret_cast<decltype(rpcnRemoveHost)>(dlsym(handle, "_rpcsx_rpcnRemoveHost"));
+    result.rpcnSetActiveHost = reinterpret_cast<decltype(rpcnSetActiveHost)>(dlsym(handle, "_rpcsx_rpcnSetActiveHost"));
+    result.rpcnGetActiveHost = reinterpret_cast<decltype(rpcnGetActiveHost)>(dlsym(handle, "_rpcsx_rpcnGetActiveHost"));
+    result.rpcnCreateAccount = reinterpret_cast<decltype(rpcnCreateAccount)>(dlsym(handle, "_rpcsx_rpcnCreateAccount"));
+    result.rpcnResendToken = reinterpret_cast<decltype(rpcnResendToken)>(dlsym(handle, "_rpcsx_rpcnResendToken"));
+    result.rpcnTestConnection = reinterpret_cast<decltype(rpcnTestConnection)>(dlsym(handle, "_rpcsx_rpcnTestConnection"));
+    result.rpcnSetEnabled = reinterpret_cast<decltype(rpcnSetEnabled)>(dlsym(handle, "_rpcsx_rpcnSetEnabled"));
+    result.rpcnIsEnabled = reinterpret_cast<decltype(rpcnIsEnabled)>(dlsym(handle, "_rpcsx_rpcnIsEnabled"));
     // clang-format on
 
     return result;
@@ -329,6 +353,81 @@ extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setWfeMode(
     JNIEnv *, jobject, jboolean on) {
   if (!rpcsxLib.setWfeMode) return;
   rpcsxLib.setWfeMode(on ? 1 : 0);
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_net_rpcsx_RPCSX_rpcnGetConfig(JNIEnv *env, jobject) {
+  if (!rpcsxLib.rpcnGetConfig) return wrap(env, std::string{});
+  return wrap(env, rpcsxLib.rpcnGetConfig());
+}
+
+extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_rpcnSetCredentials(
+    JNIEnv *env, jobject, jstring npid, jstring password, jstring token) {
+  if (!rpcsxLib.rpcnSetCredentials) return;
+  rpcsxLib.rpcnSetCredentials(unwrap(env, npid), unwrap(env, password), unwrap(env, token));
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_net_rpcsx_RPCSX_rpcnGetHosts(JNIEnv *env, jobject) {
+  if (!rpcsxLib.rpcnGetHosts) return wrap(env, std::string{});
+  return wrap(env, rpcsxLib.rpcnGetHosts());
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_net_rpcsx_RPCSX_rpcnAddHost(
+    JNIEnv *env, jobject, jstring description, jstring host) {
+  if (!rpcsxLib.rpcnAddHost) return false;
+  return rpcsxLib.rpcnAddHost(unwrap(env, description), unwrap(env, host));
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_net_rpcsx_RPCSX_rpcnRemoveHost(JNIEnv *env, jobject, jstring host) {
+  if (!rpcsxLib.rpcnRemoveHost) return false;
+  return rpcsxLib.rpcnRemoveHost(unwrap(env, host));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_net_rpcsx_RPCSX_rpcnSetActiveHost(JNIEnv *env, jobject, jstring host) {
+  if (!rpcsxLib.rpcnSetActiveHost) return;
+  rpcsxLib.rpcnSetActiveHost(unwrap(env, host));
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_net_rpcsx_RPCSX_rpcnGetActiveHost(JNIEnv *env, jobject) {
+  if (!rpcsxLib.rpcnGetActiveHost) return wrap(env, std::string{});
+  return wrap(env, rpcsxLib.rpcnGetActiveHost());
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_net_rpcsx_RPCSX_rpcnCreateAccount(
+    JNIEnv *env, jobject, jstring npid, jstring password, jstring onlineName,
+    jstring email, jstring country) {
+  if (!rpcsxLib.rpcnCreateAccount) return wrap(env, std::string{"RPCN unavailable in this build"});
+  return wrap(env, rpcsxLib.rpcnCreateAccount(unwrap(env, npid), unwrap(env, password),
+                                              unwrap(env, onlineName), unwrap(env, email),
+                                              unwrap(env, country)));
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_net_rpcsx_RPCSX_rpcnResendToken(JNIEnv *env, jobject) {
+  if (!rpcsxLib.rpcnResendToken) return wrap(env, std::string{"RPCN unavailable in this build"});
+  return wrap(env, rpcsxLib.rpcnResendToken());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_net_rpcsx_RPCSX_rpcnTestConnection(JNIEnv *env, jobject) {
+  if (!rpcsxLib.rpcnTestConnection) return wrap(env, std::string{"RPCN unavailable in this build"});
+  return wrap(env, rpcsxLib.rpcnTestConnection());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_net_rpcsx_RPCSX_rpcnSetEnabled(JNIEnv *, jobject, jboolean enabled) {
+  if (!rpcsxLib.rpcnSetEnabled) return;
+  rpcsxLib.rpcnSetEnabled(enabled ? 1 : 0);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_net_rpcsx_RPCSX_rpcnIsEnabled(JNIEnv *, jobject) {
+  if (!rpcsxLib.rpcnIsEnabled) return false;
+  return rpcsxLib.rpcnIsEnabled();
 }
 
 extern "C" JNIEXPORT jstring JNICALL
