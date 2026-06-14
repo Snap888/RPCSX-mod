@@ -110,6 +110,10 @@ class MainActivity : ComponentActivity() {
                 runCatching {
                     RPCSX.instance.setCpuAffinityMode(GeneralSettings["cpu_affinity"] as? Boolean ?: false)
                 }
+                // Experimental: low-power WFE waiting (default off).
+                runCatching {
+                    RPCSX.instance.setWfeMode(GeneralSettings["wfe_mode"] as? Boolean ?: false)
+                }
                 val gpuDriverPath = GeneralSettings["gpu_driver_path"] as? String
                 val gpuDriverName = GeneralSettings["gpu_driver_name"] as? String
 

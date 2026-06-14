@@ -58,6 +58,7 @@ struct RPCSXApi {
   void (*setPowerSaveMode)(int on);
   void (*setThermalFrameCap)(float fps);
   void (*setCpuAffinityMode)(int on);
+  void (*setWfeMode)(int on);
 };
 
 struct RPCSXLibrary : RPCSXApi {
@@ -133,6 +134,7 @@ struct RPCSXLibrary : RPCSXApi {
     result.setPowerSaveMode = reinterpret_cast<decltype(setPowerSaveMode)>(dlsym(handle, "_rpcsx_setPowerSaveMode"));
     result.setThermalFrameCap = reinterpret_cast<decltype(setThermalFrameCap)>(dlsym(handle, "_rpcsx_setThermalFrameCap"));
     result.setCpuAffinityMode = reinterpret_cast<decltype(setCpuAffinityMode)>(dlsym(handle, "_rpcsx_setCpuAffinityMode"));
+    result.setWfeMode = reinterpret_cast<decltype(setWfeMode)>(dlsym(handle, "_rpcsx_setWfeMode"));
     // clang-format on
 
     return result;
@@ -321,6 +323,12 @@ extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setCpuAffinityMode(
     JNIEnv *, jobject, jboolean on) {
   if (!rpcsxLib.setCpuAffinityMode) return;
   rpcsxLib.setCpuAffinityMode(on ? 1 : 0);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setWfeMode(
+    JNIEnv *, jobject, jboolean on) {
+  if (!rpcsxLib.setWfeMode) return;
+  rpcsxLib.setWfeMode(on ? 1 : 0);
 }
 
 extern "C" JNIEXPORT jstring JNICALL

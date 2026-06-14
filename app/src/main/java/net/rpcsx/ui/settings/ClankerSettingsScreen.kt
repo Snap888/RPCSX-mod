@@ -261,6 +261,20 @@ fun ClankerFeaturesScreen(navigateBack: () -> Unit) {
                     }
                 )
             }
+            item(key = "wfe_mode") {
+                var itemValue by remember { mutableStateOf(GeneralSettings["wfe_mode"] as? Boolean ?: false) }
+                SwitchPreference(
+                    checked = itemValue,
+                    title = stringResource(R.string.clanker_wfe),
+                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.clanker_wfe_summary), maxLines = 3) },
+                    leadingIcon = null,
+                    onClick = { value ->
+                        GeneralSettings.setValue("wfe_mode", value)
+                        runCatching { net.rpcsx.RPCSX.instance.setWfeMode(value) }
+                        itemValue = value
+                    }
+                )
+            }
             item(key = "auto_compile_threads") {
                 val context = LocalContext.current
                 var itemValue by remember { mutableStateOf(CompileThreadPolicy.enabled) }
