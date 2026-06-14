@@ -2,6 +2,8 @@ package net.rpcsx
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.view.InputDevice
@@ -31,6 +33,39 @@ class RPCSXActivity : Activity() {
     private var usesAxisR2 = false
     private var bootThread: Thread? = null
     private val inputBindings by lazy { InputBindingPrefs.loadBindings() }
+
+    // Back-button policy: during gameplay the system back button opens the
+    // in-game quick (home) menu instead of exiting. Exit happens from that menu
+    // ("Exit Game"), which stops the emulator; the watcher below then finishes
+    // this activity so we return to the library. Without this watcher, removing
+    // the old back->finish() behaviour would leave no way back to the library.
+    private var sawRunning = false
+    private val watcherHandler = Handler(Looper.getMainLooper())
+    private val stateWatcher = object : Runnable {
+        override fun run() {
+            val s = RPCSX.getState()
+            if (s == EmulatorState.Running || s == EmulatorState.Paused) {
+                sawRunning = true
+            }
+            if (sawRunning && s == EmulatorState.Stopped) {
+                finish()
+                return
+            }
+            watcherHandler.postDelayed(this, 500)
+        }
+    }
+
+    override fun onBackPressed() {
+        val s = RPCSX.getState()
+        // Ignore back as a "leave gameplay" gesture while a game is live; surface
+        // it as the quick menu instead. This also avoids the old side effect where
+        // back -> finish() -> surfaceDestroyed -> the core opened the home menu.
+        if (s == EmulatorState.Running || s == EmulatorState.Paused) {
+            runCatching { RPCSX.instance.openHomeMenu() }
+            return
+        }
+        super.onBackPressed()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,10 +132,13 @@ class RPCSXActivity : Activity() {
                 finish()
             }
         }
+
+        watcherHandler.post(stateWatcher)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        watcherHandler.removeCallbacks(stateWatcher)
         RPCSX.state.value = EmulatorState.Paused
         net.rpcsx.utils.ThermalManager.unregister()
         unregisterUsbEventListener()
