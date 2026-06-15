@@ -284,7 +284,7 @@ fun ClankerFeaturesScreen(navigateBack: () -> Unit) {
                 )
             }
             item(key = "smooth_shaders") {
-                var itemValue by remember { mutableStateOf(GeneralSettings["smooth_shaders"] as? Boolean ?: true) }
+                var itemValue by remember { mutableStateOf(GeneralSettings["smooth_shaders"] as? Boolean ?: false) }
                 SwitchPreference(
                     checked = itemValue,
                     title = stringResource(R.string.clanker_smooth_shaders),

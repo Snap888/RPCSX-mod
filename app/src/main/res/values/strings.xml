@@ -131,7 +131,7 @@
     <string name="clanker_wfe">Low-power waiting (experimental)</string>
     <string name="clanker_wfe_summary">Lets the GPU thread sleep the CPU core (ARM WFE) while waiting on the game instead of spinning it at full speed. Aims to cut heat and battery during play. Test it; turn off if anything stutters or hangs.</string>
     <string name="clanker_smooth_shaders">Smooth shaders</string>
-    <string name="clanker_smooth_shaders_summary">Render new shaders via the interpreter while they compile to avoid stutter (uses a little more GPU while compiling).</string>
+    <string name="clanker_smooth_shaders_summary">Experimental: render new shaders via the interpreter. On our current build this can cause brief freezes when new shaders appear, so it is off by default.</string>
     <string name="clanker_cpu_affinity">CPU affinity (experimental)</string>
     <string name="clanker_cpu_affinity_summary">Pins the heavy emulation threads to the fast CPU cores, freeing the efficiency cores. May reduce heat - or cost FPS on some games. Test it; turn off if anything runs worse.</string>
     <string name="clanker_battery_saver">Battery saver</string>

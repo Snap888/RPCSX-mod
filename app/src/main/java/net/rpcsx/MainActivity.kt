@@ -115,9 +115,9 @@ class MainActivity : ComponentActivity() {
                     RPCSX.instance.setWfeMode(GeneralSettings["wfe_mode"] as? Boolean ?: false)
                 }
                 // Smooth shaders: render new shaders via the interpreter while they
-                // compile to avoid pop-in stutter (default on).
+                // compile to avoid pop-in stutter (default off; experimental, can cause freezes on current build).
                 runCatching {
-                    RPCSX.instance.setSmoothShaders(GeneralSettings["smooth_shaders"] as? Boolean ?: true)
+                    RPCSX.instance.setSmoothShaders(GeneralSettings["smooth_shaders"] as? Boolean ?: false)
                 }
                 val gpuDriverPath = GeneralSettings["gpu_driver_path"] as? String
                 val gpuDriverName = GeneralSettings["gpu_driver_name"] as? String
