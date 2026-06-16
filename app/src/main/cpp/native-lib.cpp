@@ -58,6 +58,8 @@ struct RPCSXApi {
   void (*setCompileMemoryBudget)(long long bytes);
   void (*setPowerSaveMode)(int on);
   void (*setThermalFrameCap)(float fps);
+  int (*getRsxThreadTid)();
+  long long (*getFrameWorkNanos)();
   void (*setCpuAffinityMode)(int on);
   void (*setWfeMode)(int on);
   void (*setSmoothShaders)(int on);
@@ -148,6 +150,8 @@ struct RPCSXLibrary : RPCSXApi {
     result.setCompileMemoryBudget = reinterpret_cast<decltype(setCompileMemoryBudget)>(dlsym(handle, "_rpcsx_setCompileMemoryBudget"));
     result.setPowerSaveMode = reinterpret_cast<decltype(setPowerSaveMode)>(dlsym(handle, "_rpcsx_setPowerSaveMode"));
     result.setThermalFrameCap = reinterpret_cast<decltype(setThermalFrameCap)>(dlsym(handle, "_rpcsx_setThermalFrameCap"));
+    result.getRsxThreadTid = reinterpret_cast<decltype(getRsxThreadTid)>(dlsym(handle, "_rpcsx_getRsxThreadTid"));
+    result.getFrameWorkNanos = reinterpret_cast<decltype(getFrameWorkNanos)>(dlsym(handle, "_rpcsx_getFrameWorkNanos"));
     result.setCpuAffinityMode = reinterpret_cast<decltype(setCpuAffinityMode)>(dlsym(handle, "_rpcsx_setCpuAffinityMode"));
     result.setWfeMode = reinterpret_cast<decltype(setWfeMode)>(dlsym(handle, "_rpcsx_setWfeMode"));
     result.setSmoothShaders = reinterpret_cast<decltype(setSmoothShaders)>(dlsym(handle, "_rpcsx_setSmoothShaders"));
@@ -352,6 +356,18 @@ extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setThermalFrameCap(
     JNIEnv *, jobject, jfloat fps) {
   if (!rpcsxLib.setThermalFrameCap) return;
   rpcsxLib.setThermalFrameCap(fps);
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_net_rpcsx_RPCSX_getRsxThreadTid(
+    JNIEnv *, jobject) {
+  if (!rpcsxLib.getRsxThreadTid) return 0;
+  return rpcsxLib.getRsxThreadTid();
+}
+
+extern "C" JNIEXPORT jlong JNICALL Java_net_rpcsx_RPCSX_getFrameWorkNanos(
+    JNIEnv *, jobject) {
+  if (!rpcsxLib.getFrameWorkNanos) return 0;
+  return rpcsxLib.getFrameWorkNanos();
 }
 
 extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setCpuAffinityMode(

@@ -338,6 +338,19 @@ fun ClankerFeaturesScreen(navigateBack: () -> Unit) {
                     }
                 )
             }
+            item(key = "adpf_hints") {
+                var itemValue by remember { mutableStateOf(net.rpcsx.utils.AdpfManager.enabled) }
+                SwitchPreference(
+                    checked = itemValue,
+                    title = stringResource(R.string.clanker_adpf),
+                    subtitle = { PreferenceSubtitle(text = stringResource(R.string.clanker_adpf_summary), maxLines = 4) },
+                    leadingIcon = null,
+                    onClick = { value ->
+                        net.rpcsx.utils.AdpfManager.enabled = value
+                        itemValue = value
+                    }
+                )
+            }
         }
     }
 }

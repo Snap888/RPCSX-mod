@@ -90,6 +90,8 @@ class RPCSX {
     external fun setCompileMemoryBudget(bytes: Long)
     external fun setPowerSaveMode(on: Boolean)
     external fun setThermalFrameCap(fps: Float)
+    external fun getRsxThreadTid(): Int
+    external fun getFrameWorkNanos(): Long
     external fun setCpuAffinityMode(on: Boolean)
     external fun setWfeMode(on: Boolean)
     external fun setSmoothShaders(on: Boolean)

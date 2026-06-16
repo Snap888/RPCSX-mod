@@ -84,6 +84,10 @@ class RPCSXActivity : ComponentActivity() {
         // Thermal-aware frame cap: cools the device under sustained load.
         net.rpcsx.utils.ThermalManager.register(this)
 
+        // ADPF scheduler hints (opt-in): feed real frame work to PerformanceHintManager
+        // so the SoC can run cooler at the same fps. No-op unless the toggle is on.
+        net.rpcsx.utils.AdpfManager.register(this)
+
         // Sustained performance mode caps the SoC to a PASSIVELY-sustainable clock.
         // On an actively-cooled handheld (e.g. Retroid Pocket 6 has a fan) that just
         // caps the peak fps we want, with little thermal upside since the fan handles
@@ -152,6 +156,7 @@ class RPCSXActivity : ComponentActivity() {
         watcherHandler.removeCallbacks(stateWatcher)
         RPCSX.state.value = EmulatorState.Paused
         net.rpcsx.utils.ThermalManager.unregister()
+        net.rpcsx.utils.AdpfManager.unregister()
         unregisterUsbEventListener()
         bootThread?.interrupt()
         bootThread?.join()
