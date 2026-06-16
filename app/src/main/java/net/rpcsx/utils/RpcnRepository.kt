@@ -1,10 +1,7 @@
 package net.rpcsx.utils
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.rpcsx.RPCSX
@@ -105,110 +102,6 @@ object RpcnRepository {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    // ---- secure credential store ------------------------------------------
-    //
-    // The core's cfg_rpcn::save() now blanks the password/token before writing
-    // rpcn.yml, so the secrets never touch external storage in cleartext. We
-    // instead persist them here in Keystore-backed EncryptedSharedPreferences
-    // (AES256-SIV keys / AES256-GCM values, master key in the Android Keystore)
-    // and re-inject them into the live core on every launch. We store the
-    // DERIVED password hash (PBKDF2-SHA3, produced by the core), never the raw
-    // password the user typed.
-
-    private const val SECURE_PREFS = "rpcn_secure_prefs"
-    private const val KEY_NPID = "npid"
-    private const val KEY_DERIVED_PASSWORD = "derivedPassword"
-    private const val KEY_TOKEN = "token"
-
-    @Volatile
-    private var securePrefs: SharedPreferences? = null
-
-    /**
-     * Initialise the encrypted credential store. Call once early (app startup)
-     * with the application context. Safe to call repeatedly; never throws -
-     * if the Keystore is unavailable the store stays null and the secure
-     * features degrade to no-ops rather than crashing.
-     */
-    fun init(context: Context) {
-        if (securePrefs != null) return
-        synchronized(this) {
-            if (securePrefs != null) return
-            securePrefs = runCatching {
-                val masterKey = MasterKey.Builder(context.applicationContext)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
-                EncryptedSharedPreferences.create(
-                    context.applicationContext,
-                    SECURE_PREFS,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-                )
-            }.getOrElse {
-                Log.e(TAG, "EncryptedSharedPreferences init failed", it)
-                null
-            }
-        }
-    }
-
-    private fun storeSecure(npid: String, derivedPassword: String, token: String) {
-        val prefs = securePrefs ?: return
-        runCatching {
-            prefs.edit()
-                .putString(KEY_NPID, npid)
-                .putString(KEY_DERIVED_PASSWORD, derivedPassword)
-                .putString(KEY_TOKEN, token)
-                .apply()
-        }.onFailure { Log.e(TAG, "secure store write failed", it) }
-    }
-
-    /** The token saved in the encrypted store ("" if none / store unavailable). */
-    fun storedToken(): String =
-        runCatching { securePrefs?.getString(KEY_TOKEN, "").orEmpty() }.getOrElse { "" }
-
-    /**
-     * Re-inject stored credentials into the live core, or one-time migrate an
-     * existing cleartext rpcn.yml secret into the encrypted store. Call once at
-     * startup AFTER the core .so is loaded (the core loads rpcn.yml on first
-     * RPCN access / config load). Never throws.
-     *
-     *  - If the encrypted store already holds a non-empty derived password, push
-     *    it (plus npid + token) into the core so RPCN can authenticate.
-     *  - Otherwise (fresh install OR an existing user whose secret still lives in
-     *    rpcn.yml), read the derived hash the core loaded from the yml; if it is
-     *    non-empty, capture {npid, derived, token} into the encrypted store
-     *    (migration) BEFORE the core blanks the yml on its next save, and inject
-     *    it. If the derived hash is empty, the user has nothing configured - do
-     *    nothing.
-     */
-    fun injectStoredCredentials() {
-        runCatching {
-            val storedDerived = securePrefs?.getString(KEY_DERIVED_PASSWORD, "").orEmpty()
-            if (storedDerived.isNotEmpty()) {
-                val npid = securePrefs?.getString(KEY_NPID, "").orEmpty()
-                val token = securePrefs?.getString(KEY_TOKEN, "").orEmpty()
-                RPCSX.instance.rpcnSetDerivedCredentials(npid, storedDerived, token)
-                return@runCatching
-            }
-
-            // Migration path: capture whatever the core loaded from rpcn.yml.
-            // rpcnGetConfig() triggers the core's g_cfg_rpcn.load(), so call it FIRST
-            // to ensure the yml is loaded before we read the derived password - at
-            // startup the RPCN config is not loaded until something touches it, and
-            // rpcnGetDerivedPassword() deliberately does NOT load() (that would clobber
-            // the just-set in-memory hash on the read-back-after-set path).
-            val raw = RPCSX.instance.rpcnGetConfig()
-            val (npid, token) = if (raw.isBlank()) "" to "" else {
-                val o = JSONObject(raw)
-                o.optString("npid") to o.optString("token")
-            }
-            val derived = RPCSX.instance.rpcnGetDerivedPassword()
-            if (derived.isEmpty()) return@runCatching // fresh user, nothing to migrate
-            storeSecure(npid, derived, token)
-            RPCSX.instance.rpcnSetDerivedCredentials(npid, derived, token)
-        }.onFailure { Log.e(TAG, "injectStoredCredentials failed", it) }
-    }
-
     // ---- native config / credentials -------------------------------------
 
     suspend fun getConfig(): RpcnConfig = withContext(Dispatchers.IO) {
@@ -228,22 +121,10 @@ object RpcnRepository {
         }
     }
 
-    /**
-     * Set credentials from the RAW password the user typed. The core derives the
-     * password (PBKDF2) and sets it in the live session. We then read the freshly
-     * derived hash back and persist {npid, derived, token} into the encrypted
-     * store - so the secret survives across launches without ever living in
-     * rpcn.yml in cleartext. A blank password means "unchanged": we still read
-     * the current derived hash so the stored copy stays in sync.
-     */
     suspend fun setCredentials(npid: String, password: String, token: String): Boolean =
         withContext(Dispatchers.IO) {
-            runCatching {
-                RPCSX.instance.rpcnSetCredentials(npid, password, token)
-                val derived = RPCSX.instance.rpcnGetDerivedPassword()
-                storeSecure(npid, derived, token)
-                true
-            }.getOrElse { Log.e(TAG, "rpcnSetCredentials failed", it); false }
+            runCatching { RPCSX.instance.rpcnSetCredentials(npid, password, token); true }
+                .getOrElse { Log.e(TAG, "rpcnSetCredentials failed", it); false }
         }
 
     suspend fun createAccount(

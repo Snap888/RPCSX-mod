@@ -76,8 +76,6 @@ struct RPCSXApi {
   std::string (*rpcnTestConnection)();
   void (*rpcnSetEnabled)(int enabled);
   bool (*rpcnIsEnabled)();
-  std::string (*rpcnGetDerivedPassword)();
-  void (*rpcnSetDerivedCredentials)(std::string_view npid, std::string_view derived_password, std::string_view token);
 };
 
 struct RPCSXLibrary : RPCSXApi {
@@ -171,8 +169,6 @@ struct RPCSXLibrary : RPCSXApi {
     result.rpcnTestConnection = reinterpret_cast<decltype(rpcnTestConnection)>(dlsym(handle, "_rpcsx_rpcnTestConnection"));
     result.rpcnSetEnabled = reinterpret_cast<decltype(rpcnSetEnabled)>(dlsym(handle, "_rpcsx_rpcnSetEnabled"));
     result.rpcnIsEnabled = reinterpret_cast<decltype(rpcnIsEnabled)>(dlsym(handle, "_rpcsx_rpcnIsEnabled"));
-    result.rpcnGetDerivedPassword = reinterpret_cast<decltype(rpcnGetDerivedPassword)>(dlsym(handle, "_rpcsx_rpcnGetDerivedPassword"));
-    result.rpcnSetDerivedCredentials = reinterpret_cast<decltype(rpcnSetDerivedCredentials)>(dlsym(handle, "_rpcsx_rpcnSetDerivedCredentials"));
     // clang-format on
 
     return result;
@@ -473,18 +469,6 @@ extern "C" JNIEXPORT jboolean JNICALL
 Java_net_rpcsx_RPCSX_rpcnIsEnabled(JNIEnv *, jobject) {
   if (!rpcsxLib.rpcnIsEnabled) return false;
   return rpcsxLib.rpcnIsEnabled();
-}
-
-extern "C" JNIEXPORT jstring JNICALL
-Java_net_rpcsx_RPCSX_rpcnGetDerivedPassword(JNIEnv *env, jobject) {
-  if (!rpcsxLib.rpcnGetDerivedPassword) return wrap(env, std::string{});
-  return wrap(env, rpcsxLib.rpcnGetDerivedPassword());
-}
-
-extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_rpcnSetDerivedCredentials(
-    JNIEnv *env, jobject, jstring npid, jstring derivedPassword, jstring token) {
-  if (!rpcsxLib.rpcnSetDerivedCredentials) return;
-  rpcsxLib.rpcnSetDerivedCredentials(unwrap(env, npid), unwrap(env, derivedPassword), unwrap(env, token));
 }
 
 extern "C" JNIEXPORT jstring JNICALL
