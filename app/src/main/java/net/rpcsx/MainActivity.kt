@@ -14,6 +14,7 @@ import net.rpcsx.ui.navigation.AppNavHost
 import net.rpcsx.utils.FileUtil
 import net.rpcsx.utils.GeneralSettings
 import net.rpcsx.utils.GitHub
+import net.rpcsx.utils.RpcnRepository
 import net.rpcsx.utils.RpcsxUpdater
 import java.io.File
 import kotlin.concurrent.thread
@@ -101,6 +102,13 @@ class MainActivity : ComponentActivity() {
 
             if (RPCSX.activeLibrary.value != null) {
                 RPCSX.instance.initialize(RPCSX.rootDirectory, UserRepository.getUserFromSettings())
+                // RPCN credentials are stored in Keystore-backed encrypted prefs
+                // (never cleartext in rpcn.yml). The core has loaded its rpcn.yml
+                // by now, so inject the stored secret - or one-time migrate an
+                // existing yml secret into the encrypted store - before any RPCN
+                // login can happen.
+                RpcnRepository.init(applicationContext)
+                RpcnRepository.injectStoredCredentials()
                 // Apply the device-adaptive compile-thread cap before any game can
                 // boot, so low-RAM devices don't OOM during first-boot compilation.
                 net.rpcsx.utils.CompileThreadPolicy.apply(applicationContext)

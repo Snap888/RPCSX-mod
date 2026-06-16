@@ -135,6 +135,12 @@ class RPCSX {
     external fun rpcnSetEnabled(enabled: Boolean)
     external fun rpcnIsEnabled(): Boolean
 
+    // Secure-credential support: the core no longer writes the password/token to
+    // rpcn.yml in cleartext. The app stores the DERIVED password hash + token in
+    // Keystore-backed EncryptedSharedPreferences and re-injects them each launch.
+    external fun rpcnGetDerivedPassword(): String     // derived (PBKDF2) hash, "" if none
+    external fun rpcnSetDerivedCredentials(npid: String, derivedPassword: String, token: String)
+
 
     companion object {
         var initialized = false

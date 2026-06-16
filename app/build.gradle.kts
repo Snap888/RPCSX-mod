@@ -137,4 +137,5 @@ dependencies {
     implementation(libs.squareup.okhttp3)
     implementation(libs.androidx.documentfile)
     implementation(libs.materialswitch)
+    implementation(libs.androidx.security.crypto)
 }

@@ -112,11 +112,17 @@ fun RpcnSettingsScreen(navigateBack: () -> Unit) {
     // Initial load: pull config, enabled state, hosts, and (if a game is known)
     // its suggested servers. All off the main thread; never throws.
     LaunchedEffect(Unit) {
+        // Ensure the encrypted credential store is available (normally inited at
+        // app startup; this guards the case the user reaches settings first).
+        RpcnRepository.init(context)
         enabled = RpcnRepository.isEnabled()
         val cfg = RpcnRepository.getConfig()
         if (npid.isBlank()) npid = cfg.npid
         if (password.isBlank()) password = cfg.password
-        if (token.isBlank()) token = cfg.token
+        // The token is no longer kept in rpcn.yml (cfg.token is blank after the
+        // core stops persisting it); read it from the encrypted store so the user
+        // still sees their saved token. NPID stays in the yml (not a secret).
+        if (token.isBlank()) token = cfg.token.ifBlank { RpcnRepository.storedToken() }
         refreshHosts()
         if (currentSerial.isNotBlank()) {
             suggestions = RpcnRepository.suggestedServersFor(context, currentSerial)
