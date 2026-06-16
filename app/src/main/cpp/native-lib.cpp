@@ -60,6 +60,7 @@ struct RPCSXApi {
   void (*setThermalFrameCap)(float fps);
   int (*getRsxThreadTid)();
   long long (*getFrameWorkNanos)();
+  long long (*getFramePeriodNanos)();
   void (*setCpuAffinityMode)(int on);
   void (*setWfeMode)(int on);
   void (*setSmoothShaders)(int on);
@@ -152,6 +153,7 @@ struct RPCSXLibrary : RPCSXApi {
     result.setThermalFrameCap = reinterpret_cast<decltype(setThermalFrameCap)>(dlsym(handle, "_rpcsx_setThermalFrameCap"));
     result.getRsxThreadTid = reinterpret_cast<decltype(getRsxThreadTid)>(dlsym(handle, "_rpcsx_getRsxThreadTid"));
     result.getFrameWorkNanos = reinterpret_cast<decltype(getFrameWorkNanos)>(dlsym(handle, "_rpcsx_getFrameWorkNanos"));
+    result.getFramePeriodNanos = reinterpret_cast<decltype(getFramePeriodNanos)>(dlsym(handle, "_rpcsx_getFramePeriodNanos"));
     result.setCpuAffinityMode = reinterpret_cast<decltype(setCpuAffinityMode)>(dlsym(handle, "_rpcsx_setCpuAffinityMode"));
     result.setWfeMode = reinterpret_cast<decltype(setWfeMode)>(dlsym(handle, "_rpcsx_setWfeMode"));
     result.setSmoothShaders = reinterpret_cast<decltype(setSmoothShaders)>(dlsym(handle, "_rpcsx_setSmoothShaders"));
@@ -368,6 +370,12 @@ extern "C" JNIEXPORT jlong JNICALL Java_net_rpcsx_RPCSX_getFrameWorkNanos(
     JNIEnv *, jobject) {
   if (!rpcsxLib.getFrameWorkNanos) return 0;
   return rpcsxLib.getFrameWorkNanos();
+}
+
+extern "C" JNIEXPORT jlong JNICALL Java_net_rpcsx_RPCSX_getFramePeriodNanos(
+    JNIEnv *, jobject) {
+  if (!rpcsxLib.getFramePeriodNanos) return 0;
+  return rpcsxLib.getFramePeriodNanos();
 }
 
 extern "C" JNIEXPORT void JNICALL Java_net_rpcsx_RPCSX_setCpuAffinityMode(

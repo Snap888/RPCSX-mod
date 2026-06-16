@@ -31,10 +31,13 @@ object AdpfManager {
     private const val TAG = "AdpfManager"
     private const val KEY = "adpf_hints"
 
-    // 60fps frame budget. We report actual WORK (busy time, idle excluded), so a
-    // lighter game reports work below this target and the scheduler ramps the clock
-    // DOWN (the heat win); a struggling game reports above it and asks for more.
-    private const val TARGET_NANOS = 16_666_666L
+    // Fallback target (60fps budget) used only until the core reports the real frame
+    // period. The live target is the measured frame period (deadline): we report actual
+    // WORK (busy time, idle excluded), so a game whose work fits under the period lets the
+    // scheduler ramp the clock DOWN (the heat win) instead of over-boosting a 30fps game
+    // against a fixed 60fps target.
+    private const val DEFAULT_TARGET_NANOS = 16_666_666L
+    private const val TARGET_EPSILON_NANOS = 2_000_000L // 2ms - avoid spamming target updates
     private const val POLL_MS = 16L
 
     var enabled: Boolean
@@ -47,6 +50,7 @@ object AdpfManager {
     private var pm: PowerManager? = null
     @Volatile private var running = false
     private var headroomTick = 0
+    private var lastTargetNanos = 0L
 
     fun register(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
@@ -71,11 +75,17 @@ object AdpfManager {
                 if (sess == null) {
                     val tid = runCatching { RPCSX.instance.getRsxThreadTid() }.getOrDefault(0)
                     if (tid != 0) {
+                        // Initial target = the measured frame period (deadline), so a 30fps
+                        // game is not judged against a fixed 60fps target. Fall back to the
+                        // default if the period is not measured yet.
+                        val period = runCatching { RPCSX.instance.getFramePeriodNanos() }.getOrDefault(0L)
+                        val target = if (period > 0L) period else DEFAULT_TARGET_NANOS
                         session = runCatching {
-                            phm.createHintSession(intArrayOf(tid), TARGET_NANOS)
+                            phm.createHintSession(intArrayOf(tid), target)
                         }.getOrNull()
                         if (session != null) {
-                            Log.i(TAG, "ADPF hint session created (rsx tid=$tid, target=${TARGET_NANOS}ns)")
+                            lastTargetNanos = target
+                            Log.i(TAG, "ADPF hint session created (rsx tid=$tid, target=${target}ns)")
                         } else {
                             // Device/driver does not support hint sessions - stop quietly.
                             Log.i(TAG, "ADPF hint session unsupported on this device; disabling feed")
@@ -84,6 +94,13 @@ object AdpfManager {
                         }
                     }
                 } else {
+                    // Track the deadline: if the frame period shifts (e.g. 30<->60fps), update
+                    // the target so the scheduler aims for the real budget, not a fixed one.
+                    val period = runCatching { RPCSX.instance.getFramePeriodNanos() }.getOrDefault(0L)
+                    if (period > 0L && kotlin.math.abs(period - lastTargetNanos) > TARGET_EPSILON_NANOS) {
+                        runCatching { sess.updateTargetWorkDuration(period) }
+                        lastTargetNanos = period
+                    }
                     val work = runCatching { RPCSX.instance.getFrameWorkNanos() }.getOrDefault(0L)
                     if (work > 0L) {
                         runCatching { sess.reportActualWorkDuration(work) }
