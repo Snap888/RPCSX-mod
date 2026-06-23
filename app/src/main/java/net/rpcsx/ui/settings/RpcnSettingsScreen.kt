@@ -181,6 +181,14 @@ fun RpcnSettingsScreen(navigateBack: () -> Unit) {
                             if (!ok) {
                                 enabled = !value
                                 toast(context.getString(R.string.rpcn_toggle_failed))
+                            } else if (value) {
+                                // Actually connect so the live status reflects it. The core now
+                                // holds the client alive; testConnection establishes the session
+                                // and the status poll below picks it up.
+                                liveStatus = "connecting"
+                                RpcnRepository.testConnection()
+                            } else {
+                                liveStatus = "offline"
                             }
                         }
                     }
