@@ -280,6 +280,11 @@ class RPCSXActivity : ComponentActivity() {
     private fun enableFullScreenImmersive() {
         with(window) {
             WindowCompat.setDecorFitsSystemWindows(this, false)
+            // Keep the screen on while a game is up: a large title's first-launch PPU
+            // precompile (e.g. The Sims 3: 152 modules / 990k blocks) can run for many
+            // minutes with the game on screen; without this the display can sleep and
+            // the user force-closes thinking it hung.
+            addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             val insetsController = WindowInsetsControllerCompat(this, decorView)
             insetsController.apply {
                 hide(WindowInsetsCompat.Type.systemBars())
