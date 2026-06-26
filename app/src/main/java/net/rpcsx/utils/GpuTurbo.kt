@@ -17,7 +17,12 @@ object GpuTurbo {
         get() = GeneralSettings[KEY].boolean(false)
         set(value) { GeneralSettings[KEY] = value }
 
-    /** Push the current state to the GPU. Call at startup and on toggle. */
+    /**
+     * Push the current state to the GPU. Call at startup and on toggle. The startup call is also
+     * load-bearing: setGpuTurbo lazily registers the core's in-game home-menu turbo handler
+     * (native-lib), so keep calling it at startup even when turbo is default-off - otherwise the
+     * home-menu toggle's adrenotools handler never gets registered.
+     */
     fun apply() {
         runCatching { RPCSX.instance.setGpuTurbo(enabled) }
     }

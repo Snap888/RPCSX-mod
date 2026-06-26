@@ -6,10 +6,14 @@ import android.app.NotificationManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import net.rpcsx.dialogs.AlertDialogQueue
+import net.rpcsx.ui.common.AmbientInstallOverlay
 import net.rpcsx.ui.navigation.AppNavHost
 import net.rpcsx.utils.FileUtil
 import net.rpcsx.utils.GeneralSettings
@@ -207,7 +211,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             RPCSXTheme {
-                AppNavHost()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppNavHost()
+                    // Library screen: keep the screen on while installing so the install never
+                    // looks hung. No dimmer - the boot screensaver was removed entirely.
+                    AmbientInstallOverlay()
+                }
             }
         }
 

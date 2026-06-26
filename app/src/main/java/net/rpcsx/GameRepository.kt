@@ -98,6 +98,11 @@ class GameRepository {
     companion object {
         private val instance = GameRepository()
 
+        // Compose-observable, read-only view of the games list (reading it inside a composable
+        // tracks the underlying SnapshotStateList). Used by the install keep-screen-on overlay to
+        // detect active Install progress. Read-only: callers must not mutate it.
+        val games: List<Game> get() = instance.games
+
         private var needsRefresh = false
         val isRefreshing = mutableStateOf(false)
         private var refreshThreadRunning = false
