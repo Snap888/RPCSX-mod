@@ -9,7 +9,6 @@ import kotlinx.coroutines.withContext
 import net.rpcsx.R
 import net.rpcsx.RPCSX
 import net.rpcsx.dialogs.AlertDialogQueue
-import net.rpcsx.ui.channels.DevRpcsxChannel
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -60,6 +59,7 @@ object RpcsxUpdater {
 
         return parts[1]
     }
+    
     fun getFileVersion(file: File): String? {
         val parts = file.name.removeSuffix(".so").split("_")
         if (parts.size != 3) {
@@ -138,7 +138,7 @@ object RpcsxUpdater {
     }
 
     suspend fun checkForUpdate(): String? {
-        val url = DevRpcsxChannel // TODO: update once RPCSX has release with android support
+        val url = "https://github.com/Snap888/rpcsx-build"
 
         when (val fetchResult = GitHub.fetchLatestRelease(url)) {
             is GitHub.FetchResult.Success<*> -> {
@@ -179,7 +179,7 @@ object RpcsxUpdater {
     }
 
     suspend fun downloadUpdate(destinationDir: File, progressCallback: (Long, Long) -> Unit): File? {
-        val url = DevRpcsxChannel // TODO: GeneralSettings["rpcsx_channel"] as String
+        val url = "https://github.com/Snap888/rpcsx-build"
 
         when (val fetchResult = GitHub.fetchLatestRelease(url)) {
             is GitHub.FetchResult.Success<*> -> {
