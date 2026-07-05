@@ -3,7 +3,6 @@ package net.rpcsx
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -25,6 +24,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var unregisterUsbEventListener: () -> Unit
     private var isShowingSetupDialog = false
 
+    // Лаунчер для выбора кастомного .so файла через системный файловый менеджер
     private val customVersionLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { installCustomVersion(it) }
     }
@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
                     GeneralSettings.sync()
                 }
             } else {
-                // RPCSX не установлен - показываем диалог выбора
+                // RPCSX не установлен - показываем диалог первоначальной настройки
                 showInitialSetupDialog()
             }
 
@@ -193,10 +193,10 @@ class MainActivity : ComponentActivity() {
         isShowingSetupDialog = true
 
         AlertDialogQueue.showDialog(
-            title = getString(R.string.setup_rpcsx_title),
+            title = getString(R.string.missing_rpcsx_lib),
             message = getString(R.string.setup_rpcsx_message),
             confirmText = getString(R.string.download),
-            dismissText = getString(R.string.install_custom),
+            dismissText = getString(R.string.install_custom_version),
             onConfirm = {
                 isShowingSetupDialog = false
                 lifecycleScope.launch {
@@ -216,15 +216,15 @@ class MainActivity : ComponentActivity() {
             cacheDir.mkdirs()
         }
 
-        when (val file = RpcsxUpdater.downloadUpdate(cacheDir) { current, max ->
-            // Обновление прогресса загрузки
-        }) {
+        when (val file = RpcsxUpdater.downloadUpdate(cacheDir) { _, _ -> }) {
             null -> {
-                // Ошибка загрузки - показать диалог снова
+                AlertDialogQueue.showDialog(
+                    getString(R.string.error),
+                    getString(R.string.failed_to_download_rpcsx)
+                )
                 showInitialSetupDialog()
             }
             else -> {
-                // Успешная загрузка - установить
                 RpcsxUpdater.installUpdate(this@MainActivity, file, isCustom = false)
             }
         }
@@ -247,7 +247,7 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 AlertDialogQueue.showDialog(
                     getString(R.string.error),
-                    getString(R.string.failed_to_install_custom_version, e.message ?: "Unknown error")
+                    getString(R.string.unexpected_error)
                 )
                 showInitialSetupDialog()
             }
