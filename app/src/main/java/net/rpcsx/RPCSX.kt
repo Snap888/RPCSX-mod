@@ -3,8 +3,7 @@ package net.rpcsx
 import android.view.Surface
 import androidx.compose.runtime.mutableStateOf
 
-enum class Digital1Flags(val bit: Int)
-{
+enum class Digital1Flags(val bit: Int) {
     None(0),
     CELL_PAD_CTRL_SELECT(0x00000001),
     CELL_PAD_CTRL_L3(0x00000002),
@@ -17,8 +16,7 @@ enum class Digital1Flags(val bit: Int)
     CELL_PAD_CTRL_PS(0x00000100),
 }
 
-enum class Digital2Flags(val bit: Int)
-{
+enum class Digital2Flags(val bit: Int) {
     None(0),
     CELL_PAD_CTRL_L2(0x00000001),
     CELL_PAD_CTRL_R2(0x00000002),
@@ -45,8 +43,7 @@ enum class EmulatorState {
     }
 }
 
-enum class BootResult
-{
+enum class BootResult {
     NoErrors,
     GenericError,
     NothingToBoot,
@@ -73,9 +70,11 @@ class RPCSX {
     external fun openLibrary(path: String): Boolean
     external fun getLibraryVersion(path: String): String?
     external fun initialize(rootDir: String, user: String): Boolean
+    
     // Additive: tells the core the app-private dir for secrets (rpcn.yml).
     // No-ops on older core .so builds that lack the symbol.
     external fun setRpcnConfigDir(internalDir: String)
+    
     external fun installFw(fd: Int, progressId: Long): Boolean
     external fun install(fd: Int, progressId: Long): Boolean
     external fun installKey(fd: Int, requestId: Long, gamePath: String): Boolean
@@ -84,7 +83,25 @@ class RPCSX {
     external fun usbDeviceEvent(fd: Int, vendorId: Int, productId: Int, event: Int): Boolean
     external fun processCompilationQueue(): Boolean
     external fun startMainThreadProcessor(): Boolean
-    external fun overlayPadData(digital1: Int, digital2: Int, leftStickX: Int, leftStickY: Int, rightStickX: Int, rightStickY: Int): Boolean
+    external fun overlayPadData(
+        digital1: Int, 
+        digital2: Int, 
+        leftStickX: Int, 
+        leftStickY: Int, 
+        rightStickX: Int, 
+        rightStickY: Int
+    ): Boolean
+    
+    // ✅ НОВЫЙ: Sixaxis motion data
+    external fun setMotionData(
+        accelX: Float,
+        accelY: Float,
+        accelZ: Float,
+        gyroX: Float,
+        gyroY: Float,
+        gyroZ: Float
+    ): Boolean
+    
     external fun collectGameInfo(rootDir: String, progressId: Long): Boolean
     external fun systemInfo(): String
     external fun settingsGet(path: String): String
@@ -99,16 +116,16 @@ class RPCSX {
     external fun setCpuAffinityMode(on: Boolean)
     external fun setWfeMode(on: Boolean)
     external fun setSmoothShaders(on: Boolean)
-    external fun getState() : Int
+    external fun getState(): Int
     external fun kill()
     external fun resume()
     external fun openHomeMenu()
     external fun loginUser(userId: String)
     external fun getUser(): String
     external fun getTitleId(): String
-    external fun supportsCustomDriverLoading() : Boolean
-    external fun isInstallableFile(fd: Int) : Boolean
-    external fun getDirInstallPath(sfoFd: Int) : String?
+    external fun supportsCustomDriverLoading(): Boolean
+    external fun isInstallableFile(fd: Int): Boolean
+    external fun getDirInstallPath(sfoFd: Int): String?
     external fun getVersion(): String
     external fun patchEngineVersion(): String
     external fun patchesList(): String
@@ -126,20 +143,25 @@ class RPCSX {
     // MUST be called off the main thread (Dispatchers.IO). The C++ side is
     // implemented separately by the core build; until then these resolve at
     // link time so every caller wraps them in runCatching to stay crash-proof.
-    external fun rpcnGetConfig(): String              // JSON {"host","npid","password","token"}
+    external fun rpcnGetConfig(): String // JSON {"host","npid","password","token"}
     external fun rpcnSetCredentials(npid: String, password: String, token: String)
-    external fun rpcnGetHosts(): String               // JSON [{"description","host"}]
+    external fun rpcnGetHosts(): String // JSON [{"description","host"}]
     external fun rpcnAddHost(description: String, host: String): Boolean
     external fun rpcnRemoveHost(host: String): Boolean
     external fun rpcnSetActiveHost(host: String)
     external fun rpcnGetActiveHost(): String
-    external fun rpcnCreateAccount(npid: String, password: String, onlineName: String, email: String, country: String): String
-    external fun rpcnResendToken(): String            // "" success else error
-    external fun rpcnTestConnection(): String         // "" success else error
-    external fun rpcnLiveStatus(): String             // "online" | "connecting" | "offline" (non-blocking)
+    external fun rpcnCreateAccount(
+        npid: String, 
+        password: String, 
+        onlineName: String, 
+        email: String, 
+        country: String
+    ): String
+    external fun rpcnResendToken(): String // "" success else error
+    external fun rpcnTestConnection(): String // "" success else error
+    external fun rpcnLiveStatus(): String // "online" | "connecting" | "offline" (non-blocking)
     external fun rpcnSetEnabled(enabled: Boolean)
     external fun rpcnIsEnabled(): Boolean
-
 
     companion object {
         var initialized = false
@@ -175,7 +197,6 @@ class RPCSX {
             if (!instance.openLibrary(path)) {
                 return false
             }
-
             activeLibrary.value = path
             return true
         }
