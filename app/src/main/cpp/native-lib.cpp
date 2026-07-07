@@ -55,7 +55,10 @@ struct RPCSXApi {
     std::string (*customConfigGet)(std::string_view serial, std::string_view path);
     bool (*customConfigSet)(std::string_view serial, std::string_view path, std::string_view valueString);
     bool (*customConfigImport)(std::string_view serial, std::string_view yaml);
-    void *(**setCustomDriver)(void *driverHandle);
+    
+    // ✅ ИСПРАВЛЕНО: Одинарная звездочка вместо двойной
+    void *(*setCustomDriver)(void *driverHandle);
+    
     void (*setMaxCompileThreads)(int count);
     void (*setCompileMemoryBudget)(long long bytes);
     void (*setPowerSaveMode)(int on);
