@@ -115,7 +115,6 @@ fun AdvancedSettingsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
     val filteredKeys = remember(searchQuery, settings, isSearching, path) {
         if (!isSearching || searchQuery.isBlank()) {
             settings.keys().asSequence().mapNotNull { key ->
@@ -127,10 +126,8 @@ fun AdvancedSettingsScreen(
             buildList {
                 settings.keys().forEach { parentKey ->
                     val parentObj = settings[parentKey] as? JSONObject ?: return@forEach
-
                     parentObj.keys().forEach { childKey ->
                         val childObj = parentObj[childKey] as? JSONObject ?: return@forEach
-
                         if (childKey.contains(searchQuery, ignoreCase = true)) {
                             val itemPath = "$parentKey@@$childKey"
                             add(itemPath to childObj)
@@ -148,12 +145,10 @@ fun AdvancedSettingsScreen(
                 if (target.exists()) {
                     target.delete()
                 }
-
                 scope.launch {
                     withContext(Dispatchers.IO) {
                         FileUtil.saveFile(context, uri, target.path)
                     }
-
                     if (RPCSX.instance.getLibraryVersion(target.path) != null) {
                         RpcsxUpdater.installUpdate(context, target, isCustom = true)
                     }
@@ -162,6 +157,7 @@ fun AdvancedSettingsScreen(
         }
 
     val topBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(topBarScrollBehavior.nestedScrollConnection)
@@ -180,7 +176,6 @@ fun AdvancedSettingsScreen(
                     ) { searching ->
                         if (searching) {
                             var expanded by remember { mutableStateOf(false) }
-
                             CompositionLocalProvider(
                                 LocalTextStyle provides MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)
                             ) {
@@ -265,9 +260,9 @@ fun AdvancedSettingsScreen(
                                 title = key, leadingIcon = null, onClick = {
                                     Log.e(
                                         "Main",
-                                        "Navigate to settings$itemPath, object $itemObject"
+                                        "Navigate to settings $itemPath, object $itemObject"
                                     )
-                                    navigateTo("settings$itemPath")
+                                    navigateTo("settings $itemPath")
                                 }
                             )
                         }
@@ -318,7 +313,8 @@ fun AdvancedSettingsScreen(
                                                 )
                                             }
                                         })
-                                })
+                                }
+                            )
                         }
 
                         "enum" -> {
@@ -329,7 +325,6 @@ fun AdvancedSettingsScreen(
                             for (i in 0..<variantsJson.length()) {
                                 variants.add(variantsJson.getString(i))
                             }
-
                             SingleSelectionDialog(
                                 currentValue = if (itemValue in variants) itemValue else variants[0],
                                 values = variants,
@@ -337,7 +332,7 @@ fun AdvancedSettingsScreen(
                                 title = key + if (itemValue == def) "" else " *",
                                 onValueChange = { value ->
                                     if (!RPCSX.instance.settingsSet(
-                                            itemPath, "\"" + value + "\""
+                                            itemPath, """$value"""
                                         )
                                     ) {
                                         AlertDialogQueue.showDialog(
@@ -359,7 +354,7 @@ fun AdvancedSettingsScreen(
                                         message = context.getString(R.string.ask_if_reset_key, key),
                                         onConfirm = {
                                             if (RPCSX.instance.settingsSet(
-                                                    itemPath, "\"" + def + "\""
+                                                    itemPath, """$def"""
                                                 )
                                             ) {
                                                 itemObject.put("value", def)
@@ -374,7 +369,8 @@ fun AdvancedSettingsScreen(
                                                 )
                                             }
                                         })
-                                })
+                                }
+                            )
                         }
 
                         "uint", "int" -> {
@@ -442,7 +438,8 @@ fun AdvancedSettingsScreen(
                                                     )
                                                 }
                                             })
-                                    })
+                                    }
+                                )
                             }
                         }
 
@@ -461,7 +458,6 @@ fun AdvancedSettingsScreen(
                             val def =
                                 if (itemObject.has("default")) itemObject.getString("default")
                                     .toDouble() else 0.0
-
                             if (min < max) {
                                 SliderPreference(
                                     value = itemValue.toFloat(),
@@ -511,7 +507,8 @@ fun AdvancedSettingsScreen(
                                                     )
                                                 }
                                             })
-                                    })
+                                    }
+                                )
                             }
                         }
 
@@ -521,7 +518,6 @@ fun AdvancedSettingsScreen(
                     }
                 }
             }
-
             if (path.isEmpty()) {
                 item(key = "install_dev_rpcsx") {
                     RegularPreference(
@@ -534,7 +530,6 @@ fun AdvancedSettingsScreen(
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -567,20 +562,19 @@ fun SettingsScreen(
         val configPicker = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
             onResult = { uri: Uri? ->
-                uri?.let { 
+                uri?.let {
                     if (FileUtil.importConfig(context, it))
                         onRefresh()
                 }
             }
         )
-
         val configExporter = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.CreateDocument("application/x-yaml"),
             onResult = { uri: Uri? ->
                 uri?.let { FileUtil.exportConfig(context, it) }
             }
         )
-        
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -589,7 +583,6 @@ fun SettingsScreen(
             item(key = "hdr_general") {
                 PreferenceHeader(text = stringResource(R.string.settings_category_general))
             }
-
             item(key = "clanker_settings") {
                 // Everything this fork adds on top of upstream RPCSX lives behind one
                 // entry with click-through sub-categories (Themes / Features / Patch
@@ -601,7 +594,6 @@ fun SettingsScreen(
                     onClick = { navigateTo("clanker_settings") }
                 )
             }
-
             item(
                 key = "internal_directory"
             ) {
@@ -619,7 +611,6 @@ fun SettingsScreen(
                     }
                 )
             }
-
             item(
                 key = "users"
             ) {
@@ -634,7 +625,6 @@ fun SettingsScreen(
                     }
                 )
             }
-
             item(key = "update_channels") {
                 HomePreference(
                     title = stringResource(R.string.download_channels),
@@ -645,11 +635,9 @@ fun SettingsScreen(
                     }
                 )
             }
-
             item(key = "hdr_emulation") {
                 PreferenceHeader(text = stringResource(R.string.settings_category_emulation))
             }
-
             item(key = "advanced_settings") {
                 HomePreference(
                     title = stringResource(R.string.advanced_settings),
@@ -673,7 +661,6 @@ fun SettingsScreen(
                     }
                 )
             }
-
             item(
                 key = "custom_driver"
             ) {
@@ -692,10 +679,9 @@ fun SettingsScreen(
                                 dismissText = ""
                             )
                         }
-                    }  
+                    }
                 )
             }
-
             item(key = "controls") {
                 HomePreference(
                     title = stringResource(R.string.controls),
@@ -704,11 +690,62 @@ fun SettingsScreen(
                     onClick = { navigateTo("controls") }
                 )
             }
-
+            
+            // ✅ НОВАЯ СЕКЦИЯ: Sixaxis / Motion Controls
+            item(key = "sixaxis_section") {
+                PreferenceHeader(text = "Sixaxis / Motion Controls")
+            }
+            
+            item(key = "sixaxis_enabled") {
+                var itemValue by remember {
+                    mutableStateOf(GeneralSettings["sixaxis_enabled"] as? Boolean ?: false)
+                }
+                HomeSwitchPreference(
+                    title = "Enable Sixaxis Emulation",
+                    description = "Use device gyroscope and accelerometer for DS3 motion controls",
+                    checked = itemValue,
+                    icon = { PreferenceIcon(icon = painterResource(R.drawable.ic_sensors)) },
+                    onCheckedChange = { value ->
+                        GeneralSettings.setValue("sixaxis_enabled", value)
+                        itemValue = value
+                    }
+                )
+            }
+            
+            item(key = "sixaxis_sensitivity") {
+                var itemValue by remember {
+                    mutableStateOf((GeneralSettings["sixaxis_sensitivity"] as? Float) ?: 1.0f)
+                }
+                SliderPreference(
+                    value = itemValue,
+                    valueRange = 0.5f..2.0f,
+                    title = "Motion Sensitivity",
+                    steps = 14, // 15 шагов для 16 значений (0.5, 0.6, ..., 2.0)
+                    onValueChange = { value ->
+                        GeneralSettings.setValue("sixaxis_sensitivity", value)
+                        itemValue = value
+                    },
+                    valueContent = {
+                        PreferenceValue(text = String.format("%.1fx", itemValue))
+                    }
+                )
+            }
+            
+            item(key = "sixaxis_calibrate") {
+                RegularPreference(
+                    title = "Calibrate Motion Sensors",
+                    value = { PreferenceValue(text = "Place device on flat surface") },
+                    onClick = {
+                        // Вызываем калибровку через Activity
+                        (context as? net.rpcsx.MainActivity)?.calibrateSensors()
+                    }
+                )
+            }
+            // ✅ КОНЕЦ СЕКЦИИ SIXAXIS
+            
             item(key = "hdr_diagnostics") {
                 PreferenceHeader(text = stringResource(R.string.settings_category_diagnostics))
             }
-
             item(key = "share_logs") {
                 HomePreference(
                     title = stringResource(R.string.share_log),
@@ -721,7 +758,6 @@ fun SettingsScreen(
                                 "${AppDataDocumentProvider.ROOT_ID}/cache/RPCSX${if (RPCSX.lastPlayedGame.isNotEmpty()) "" else ".old"}.log"
                             )
                         )
-
                         if (file != null && file.exists() && file.length() != 0L) {
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 setDataAndType(file.uri, "text/plain")
@@ -735,7 +771,6 @@ fun SettingsScreen(
                     }
                 )
             }
-
             item(key = "vdec_trace_log") {
                 var itemValue by remember {
                     mutableStateOf(GeneralSettings["vdec_trace_log"] as Boolean? ?: false)
@@ -748,7 +783,7 @@ fun SettingsScreen(
                     onCheckedChange = { value ->
                         // cellVdec -> Trace when on, Notice (default) when off. Written to the
                         // core config's Log map, applied on next game boot.
-                        val json = if (value) "{\"cellVdec\":\"Trace\"}" else "{\"cellVdec\":\"Notice\"}"
+                        val json = if (value) """{"cellVdec":"Trace"}""" else """{"cellVdec":"Notice"}"""
                         val ok = try {
                             RPCSX.instance.settingsSet("Log", json)
                         } catch (e: Throwable) {
@@ -767,7 +802,6 @@ fun SettingsScreen(
                     }
                 )
             }
-
             item(key = "perf_overlay") {
                 var itemValue by remember {
                     mutableStateOf(GeneralSettings["perf_overlay"] as Boolean? ?: false)
@@ -810,10 +844,12 @@ fun ControllerSettings(
     navigateBack: () -> Unit
 ) {
     val topBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(topBarScrollBehavior.nestedScrollConnection)
             .then(modifier),
+
         topBar = {
             LargeTopAppBar(
                 title = { Text(text = stringResource(R.string.controls), fontWeight = FontWeight.Medium) },
@@ -834,7 +870,6 @@ fun ControllerSettings(
                 putAll(InputBindingPrefs.loadBindings())
             }
         }
-
         var showDialog by remember { mutableStateOf(false) }
         var currentInput by remember { mutableStateOf(-1) }
         var currentInputName by remember { mutableStateOf("") }
@@ -848,11 +883,9 @@ fun ControllerSettings(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
             }
-
             item {
                 PreferenceHeader(stringResource(R.string.gamepad_overlay))
             }
-
             item {
                 var itemValue by remember {
                     mutableStateOf(
@@ -870,12 +903,9 @@ fun ControllerSettings(
                     }
                 )
             }
-
-
             item {
                 PreferenceHeader(stringResource(R.string.key_mappings))
             }
-
             inputBindings.toList()
                 .sortedBy { (_, value) ->
                     val name = InputBindingPrefs.rpcsxKeyCodeToString(value.first, value.second)
@@ -911,9 +941,8 @@ fun ControllerSettings(
                     }
                 }
         }
-
         if (showDialog) {
-            InputBindingDialog(
+            InputBinding.Dialog(
                 onReset = {
                     InputBindingPrefs.defaultBindings.forEach {
                         if (InputBindingPrefs.rpcsxKeyCodeToString(
@@ -952,9 +981,7 @@ fun ControllerSettings(
                     }
                     .focusRequester(requester)
                     .focusable()
-
             )
-
             LaunchedEffect(showDialog) {
                 requester.requestFocus()
             }
@@ -964,7 +991,7 @@ fun ControllerSettings(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InputBindingDialog(
+fun InputBinding.Dialog(
     modifier: Modifier = Modifier,
     onReset: () -> Unit = {},
     onDismissRequest: () -> Unit = {}
@@ -983,18 +1010,14 @@ fun InputBindingDialog(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-
             Spacer(modifier = Modifier.height(10.dp))
-
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(75.dp)
             ) {
                 ButtonMappingAnim()
             }
-
             Spacer(modifier = Modifier.height(10.dp))
-
             Button(
                 onClick = onReset,
                 modifier = Modifier.align(Alignment.End)
@@ -1008,7 +1031,6 @@ fun InputBindingDialog(
 @Composable
 fun ButtonMappingAnim() {
     val infiniteTransition = rememberInfiniteTransition()
-
     val scaleX by infiniteTransition.animateFloat(
         initialValue = 1.2f,
         targetValue = 1f,
@@ -1017,7 +1039,6 @@ fun ButtonMappingAnim() {
             repeatMode = RepeatMode.Reverse
         )
     )
-
     val scaleY by infiniteTransition.animateFloat(
         initialValue = 1.2f,
         targetValue = 1f,
@@ -1026,7 +1047,6 @@ fun ButtonMappingAnim() {
             repeatMode = RepeatMode.Reverse
         )
     )
-
     Image(
         painter = painterResource(id = R.drawable.button_mapping),
         contentDescription = null,
@@ -1043,6 +1063,6 @@ fun ButtonMappingAnim() {
 @Composable
 private fun SettingsScreenPreview() {
     ComposePreview {
-//        SettingsScreen {}
+        // SettingsScreen {}
     }
 }
