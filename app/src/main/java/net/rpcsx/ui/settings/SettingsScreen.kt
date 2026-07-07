@@ -101,6 +101,9 @@ import org.json.JSONObject
 import java.io.File
 import kotlin.math.ceil
 
+// ✅ ИСПРАВЛЕНО: Определяем объект InputBinding если его нет
+object InputBinding
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedSettingsScreen(
@@ -584,9 +587,6 @@ fun SettingsScreen(
                 PreferenceHeader(text = stringResource(R.string.settings_category_general))
             }
             item(key = "clanker_settings") {
-                // Everything this fork adds on top of upstream RPCSX lives behind one
-                // entry with click-through sub-categories (Themes / Features / Patch
-                // Manager), instead of loose toggles scattered through the list.
                 HomePreference(
                     title = stringResource(R.string.clanker_settings),
                     icon = { PreferenceIcon(icon = painterResource(R.drawable.ic_star)) },
@@ -691,7 +691,7 @@ fun SettingsScreen(
                 )
             }
             
-            // ✅ НОВАЯ СЕКЦИЯ: Sixaxis / Motion Controls
+            // ✅ ИСПРАВЛЕНО: Sixaxis секция с существующей иконкой
             item(key = "sixaxis_section") {
                 PreferenceHeader(text = "Sixaxis / Motion Controls")
             }
@@ -704,7 +704,7 @@ fun SettingsScreen(
                     title = "Enable Sixaxis Emulation",
                     description = "Use device gyroscope and accelerometer for DS3 motion controls",
                     checked = itemValue,
-                    icon = { PreferenceIcon(icon = painterResource(R.drawable.ic_sensors)) },
+                    icon = { PreferenceIcon(icon = painterResource(R.drawable.gamepad)) }, // ✅ ИСПРАВЛЕНО: используем gamepad вместо ic_sensors
                     onCheckedChange = { value ->
                         GeneralSettings.setValue("sixaxis_enabled", value)
                         itemValue = value
@@ -720,7 +720,7 @@ fun SettingsScreen(
                     value = itemValue,
                     valueRange = 0.5f..2.0f,
                     title = "Motion Sensitivity",
-                    steps = 14, // 15 шагов для 16 значений (0.5, 0.6, ..., 2.0)
+                    steps = 14,
                     onValueChange = { value ->
                         GeneralSettings.setValue("sixaxis_sensitivity", value)
                         itemValue = value
@@ -736,12 +736,10 @@ fun SettingsScreen(
                     title = "Calibrate Motion Sensors",
                     value = { PreferenceValue(text = "Place device on flat surface") },
                     onClick = {
-                        // Вызываем калибровку через Activity
                         (context as? net.rpcsx.MainActivity)?.calibrateSensors()
                     }
                 )
             }
-            // ✅ КОНЕЦ СЕКЦИИ SIXAXIS
             
             item(key = "hdr_diagnostics") {
                 PreferenceHeader(text = stringResource(R.string.settings_category_diagnostics))
@@ -781,8 +779,6 @@ fun SettingsScreen(
                     checked = itemValue,
                     icon = { PreferenceIcon(icon = painterResource(R.drawable.ic_description)) },
                     onCheckedChange = { value ->
-                        // cellVdec -> Trace when on, Notice (default) when off. Written to the
-                        // core config's Log map, applied on next game boot.
                         val json = if (value) """{"cellVdec":"Trace"}""" else """{"cellVdec":"Notice"}"""
                         val ok = try {
                             RPCSX.instance.settingsSet("Log", json)
@@ -864,7 +860,6 @@ fun ControllerSettings(
             )
         }
     ) { contentPadding ->
-        //val context = LocalContext.current
         val inputBindings = remember {
             mutableStateMapOf<Int, Pair<Int, Int>>().apply {
                 putAll(InputBindingPrefs.loadBindings())
@@ -942,7 +937,7 @@ fun ControllerSettings(
                 }
         }
         if (showDialog) {
-            InputBinding.Dialog(
+            InputBindingDialog(
                 onReset = {
                     InputBindingPrefs.defaultBindings.forEach {
                         if (InputBindingPrefs.rpcsxKeyCodeToString(
@@ -989,9 +984,10 @@ fun ControllerSettings(
     }
 }
 
+// ✅ ИСПРАВЛЕНО: Переименовано из InputBinding.Dialog в InputBindingDialog
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InputBinding.Dialog(
+fun InputBindingDialog(
     modifier: Modifier = Modifier,
     onReset: () -> Unit = {},
     onDismissRequest: () -> Unit = {}
